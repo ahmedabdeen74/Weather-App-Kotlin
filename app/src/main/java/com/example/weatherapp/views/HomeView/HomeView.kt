@@ -1,17 +1,13 @@
 package com.example.weatherapp.views.HomeView
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,17 +25,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.R
+import com.example.weatherapp.ui.theme.CustomFont
+
 
 @Preview
 @Composable
-fun ImageWithOverlayScreen() {
+fun HomeView() {
     Scaffold(
         bottomBar = {
             BottomAppBar(
                 modifier = Modifier
-                    .padding(16.dp)
                     .clip(RoundedCornerShape(24.dp)),
-                containerColor = Color.Gray
+                containerColor = Color(0xFF1B0D67).copy(alpha = 0.7f) // bottom app bar color
             ) {
                 IconButton(
                     onClick = { /* TODO: Action 1 */ },
@@ -86,7 +83,7 @@ fun ImageWithOverlayScreen() {
                     )
                 }
                 IconButton(
-                    onClick = { /* TODO: Action 4 */ },
+                    onClick = { /* TODO: Action 5 */ },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -102,14 +99,51 @@ fun ImageWithOverlayScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFF1B0D67).copy(alpha = 0.7f)) // background color
                 .padding(paddingValues)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.weatherbackground),
                 contentDescription = "Background",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.matchParentSize()
+                modifier = Modifier.fillMaxSize()
             )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 65.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Montreal",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont,
+                    color = Color.White
+                )
+                Text(
+                    text = "19°",
+                    fontSize = 96.sp,
+                    fontWeight = FontWeight.Thin,
+                   // fontFamily = CustomFont,
+                    color = Color.White
+                )
+                Text(
+                    text = "Mostly Clear",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = CustomFont,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "H:24°  L:18°",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = CustomFont,
+                    color = Color.White
+                )
+            }
 
             Image(
                 painter = painterResource(id = R.drawable.house),
@@ -119,12 +153,6 @@ fun ImageWithOverlayScreen() {
                     .padding(bottom = 20.dp)
                     .size(350.dp)
             )
-
-
         }
     }
 }
-
-
-
-
