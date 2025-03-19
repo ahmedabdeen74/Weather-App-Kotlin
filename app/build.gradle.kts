@@ -72,4 +72,5 @@ dependencies {
     //LiveData & Compose
     val compose_version = "1.0.0"
     implementation ("androidx.compose.runtime:runtime-livedata:$compose_version")
+    implementation ("androidx.compose.material:material:1.0.0")
 }
