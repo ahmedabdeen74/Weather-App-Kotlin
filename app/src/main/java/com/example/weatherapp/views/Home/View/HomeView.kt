@@ -1,4 +1,4 @@
-package com.example.weatherapp.views.HomeView
+package com.example.weatherapp.views.Home.View
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,8 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.R
+import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.ui.theme.CustomFont
-
+import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.views.Home.ViewModel.WeatherState
+import kotlin.math.roundToInt
 
 enum class SheetState {
     COLLAPSED, EXPANDED
@@ -28,9 +31,14 @@ enum class SheetState {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeView(onHomeClick: () -> Unit) {
+fun HomeView(
+    viewModel: HomeViewModel,
+    onHomeClick: () -> Unit
+) {
+    val weatherState = viewModel.weatherState
+    val locationName = viewModel.locationName
 
-    val bottomAppBarHeight = 100.dp
+    val bottomAppBarHeight = 60.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -115,72 +123,97 @@ fun HomeView(onHomeClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 65.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Montreal",            // lon & lat transform to text description
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = CustomFont,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "19°",        // temp
-                        fontSize = 96.sp,
-                        fontWeight = FontWeight.Thin,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Mostly Clear",        // weather description
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = CustomFont,
-                        color = Color.Gray
-                    )
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
-                    Text(
-                        text = "H:24°  L:18°",       // temp_max and temp_min
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = CustomFont,
-                        color = Color.White
-                    )
+                when (weatherState) {
+                    is WeatherState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color.White)
+                        }
+                    }
+                    is WeatherState.Error -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Error: ${(weatherState as WeatherState.Error).message}",
+                                color = Color.White
+                            )
+                        }
+                    }
+                    is WeatherState.Success -> {
+                        val weatherData = (weatherState as WeatherState.Success).data
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = 65.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = locationName,
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = CustomFont,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "${weatherData.main.temp.roundToInt()}°",
+                                fontSize = 96.sp,
+                                fontWeight = FontWeight.Thin,
+                                color = Color.White
+                            )
+                            Text(
+                                text = weatherData.weather.firstOrNull()?.description?.capitalize() ?: "Unknown",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontFamily = CustomFont,
+                                color = Color.Gray
+                            )
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+                            Text(
+                                text = "H:${weatherData.main.temp_max.roundToInt()}°  L:${weatherData.main.temp_min.roundToInt()}°",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontFamily = CustomFont,
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(
+                            modifier = Modifier.height(24.dp)
+                        )
+
+                        Image(
+                            painter = painterResource(id = R.drawable.house),
+                            contentDescription = "Overlay",
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .size(350.dp)
+                        )
+
+                        WeatherBottomSheet(
+                            sheetState = sheetState,
+                            onSheetStateChange = { newState -> sheetState = newState },
+                            weatherData = weatherData,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
                 }
-                Spacer(
-                    modifier = Modifier.height(24.dp)
-                )
-
-                Image(
-                    painter = painterResource(id = R.drawable.house),
-                    contentDescription = "Overlay",
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .size(350.dp)
-                )
-
-                PermanentBottomSheetContent(
-                    sheetState = sheetState,
-                    onSheetStateChange = { newState ->
-                        sheetState = newState
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                )
             }
         }
     }
 }
 
 @Composable
-fun PermanentBottomSheetContent(
+fun WeatherBottomSheet(
     sheetState: SheetState,
     onSheetStateChange: (SheetState) -> Unit,
+    weatherData: WeatherResponse,
     modifier: Modifier = Modifier
 ) {
     val topPartHeight = when (sheetState) {
@@ -243,24 +276,24 @@ fun PermanentBottomSheetContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("WIND", "4.7 m/s", R.drawable.wind)                 // wind speed
-                    WeatherCard("FEELS LIKE", "25°", R.drawable.feelslike)         // feels_like
+                    WeatherCard("WIND", "${weatherData.wind.speed} m/s", R.drawable.wind)
+                    WeatherCard("FEELS LIKE", "${weatherData.main.feels_like.roundToInt()}°", R.drawable.feelslike)
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("Visibility", "1000 m", R.drawable.visibility)    // visibility
-                    WeatherCard("Clouds", "0", R.drawable.clouds)                // clouds
+                    WeatherCard("VISIBILITY", "${weatherData.visibility} m", R.drawable.visibility)
+                    WeatherCard("CLOUDS", "${weatherData.clouds.all}%", R.drawable.clouds)
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("Humidity", "42%", R.drawable.humidity)        // humidity
-                    WeatherCard("PRESSURE", "1011 mb", R.drawable.pressure)   // pressure
+                    WeatherCard("HUMIDITY", "${weatherData.main.humidity}%", R.drawable.humidity)
+                    WeatherCard("PRESSURE", "${weatherData.main.pressure} mb", R.drawable.pressure)
                 }
             }
         }
@@ -318,3 +351,12 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
     }
 }
 
+// Extension function to capitalize first letter of each word
+fun String.capitalize(): String {
+    return this.split(" ").joinToString(" ") { word ->
+        word.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault())
+            else it.toString()
+        }
+    }
+}
