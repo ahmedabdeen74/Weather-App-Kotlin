@@ -1,6 +1,8 @@
 package com.example.weatherapp.views.HomeView
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +42,7 @@ fun HomeView() {
                     modifier = Modifier
                         .height(bottomAppBarHeight)
                         .clip(RoundedCornerShape(24.dp)),
-                    containerColor = Color(0xFF1B0D67).copy(alpha = 0.7f)
+                    containerColor = Color(46, 13, 99).copy(alpha = 0.7f)
                 ) {
                     IconButton(
                         onClick = { /* TODO: Action 1 */ },
@@ -139,6 +141,9 @@ fun HomeView() {
                         fontFamily = CustomFont,
                         color = Color.Gray
                     )
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
                     Text(
                         text = "H:24°  L:18°",
                         fontSize = 18.sp,
@@ -186,11 +191,10 @@ fun PermanentBottomSheetContent(
             .fillMaxWidth()
             .height(topPartHeight)
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(Color(0xFF1B0D67).copy(alpha = 0.7f))
+            .background(Color(46, 13, 99).copy(alpha = 0.7f))
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     if (dragAmount < 0 && sheetState != SheetState.EXPANDED) {
-
                         onSheetStateChange(SheetState.EXPANDED)
                     } else if (dragAmount > 0 && sheetState != SheetState.COLLAPSED) {
                         onSheetStateChange(SheetState.COLLAPSED)
@@ -226,6 +230,89 @@ fun PermanentBottomSheetContent(
                     tint = Color.White
                 )
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeatherCard("WIND", "4.7 m/s", R.drawable.wind)
+                    WeatherCard("FEELS LIKE", "25°", R.drawable.feelslike)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeatherCard("Visibility", "1000 m", R.drawable.visibility)
+                    WeatherCard("Clouds", "0", R.drawable.clouds)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeatherCard("Humidity", "42%", R.drawable.humidity)
+                    WeatherCard("PRESSURE", "1011 mb", R.drawable.pressure)
+                }
+            }
         }
     }
 }
+
+@Composable
+fun WeatherCard(label: String, value: String, iconResId: Int) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .height(120.dp)
+            .padding(8.dp)
+            .border(
+                width = 2.dp, // عرض الحواف
+                color = Color(108, 97, 181),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(46, 13, 99)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = iconResId),
+                    contentDescription = label,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = label,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = value,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
