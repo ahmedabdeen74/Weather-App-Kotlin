@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("kapt")
+    kotlin("plugin.serialization") version "2.1.10"
 }
 
 android {
@@ -73,4 +74,9 @@ dependencies {
     val compose_version = "1.0.0"
     implementation ("androidx.compose.runtime:runtime-livedata:$compose_version")
     implementation ("androidx.compose.material:material:1.0.0")
+
+
+    val nav_version = "2.8.8"
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("androidx.navigation:navigation-compose:$nav_version")
 }

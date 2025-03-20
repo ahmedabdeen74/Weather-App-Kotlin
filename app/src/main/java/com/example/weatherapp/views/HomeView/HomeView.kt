@@ -28,7 +28,7 @@ enum class SheetState {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeView() {
+fun HomeView(onHomeClick: () -> Unit) {
 
     val bottomAppBarHeight = 100.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
@@ -45,7 +45,7 @@ fun HomeView() {
                     containerColor = Color(46, 13, 99).copy(alpha = 0.7f)
                 ) {
                     IconButton(
-                        onClick = { /* TODO: Action 1 */ },
+                        onClick = { onHomeClick() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
@@ -122,20 +122,20 @@ fun HomeView() {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Montreal",
+                        text = "Montreal",            // lon & lat transform to text description
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = CustomFont,
                         color = Color.White
                     )
                     Text(
-                        text = "19°",
+                        text = "19°",        // temp
                         fontSize = 96.sp,
                         fontWeight = FontWeight.Thin,
                         color = Color.White
                     )
                     Text(
-                        text = "Mostly Clear",
+                        text = "Mostly Clear",        // weather description
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Medium,
                         fontFamily = CustomFont,
@@ -145,20 +145,22 @@ fun HomeView() {
                         modifier = Modifier.height(8.dp)
                     )
                     Text(
-                        text = "H:24°  L:18°",
+                        text = "H:24°  L:18°",       // temp_max and temp_min
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         fontFamily = CustomFont,
                         color = Color.White
                     )
                 }
+                Spacer(
+                    modifier = Modifier.height(24.dp)
+                )
 
                 Image(
                     painter = painterResource(id = R.drawable.house),
                     contentDescription = "Overlay",
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
                         .size(350.dp)
                 )
 
@@ -241,24 +243,24 @@ fun PermanentBottomSheetContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("WIND", "4.7 m/s", R.drawable.wind)
-                    WeatherCard("FEELS LIKE", "25°", R.drawable.feelslike)
+                    WeatherCard("WIND", "4.7 m/s", R.drawable.wind)                 // wind speed
+                    WeatherCard("FEELS LIKE", "25°", R.drawable.feelslike)         // feels_like
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("Visibility", "1000 m", R.drawable.visibility)
-                    WeatherCard("Clouds", "0", R.drawable.clouds)
+                    WeatherCard("Visibility", "1000 m", R.drawable.visibility)    // visibility
+                    WeatherCard("Clouds", "0", R.drawable.clouds)                // clouds
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    WeatherCard("Humidity", "42%", R.drawable.humidity)
-                    WeatherCard("PRESSURE", "1011 mb", R.drawable.pressure)
+                    WeatherCard("Humidity", "42%", R.drawable.humidity)        // humidity
+                    WeatherCard("PRESSURE", "1011 mb", R.drawable.pressure)   // pressure
                 }
             }
         }
@@ -273,7 +275,7 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
             .height(120.dp)
             .padding(8.dp)
             .border(
-                width = 2.dp, // عرض الحواف
+                width = 2.dp,
                 color = Color(108, 97, 181),
                 shape = RoundedCornerShape(16.dp)
             ),
