@@ -3,8 +3,13 @@ package com.example.weatherapp.views.Home.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,10 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.R
@@ -24,6 +31,17 @@ import com.example.weatherapp.ui.theme.CustomFont
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.WeatherState
 import kotlin.math.roundToInt
+data class HourlyForecast(
+    val time: String,
+    val icon: Int,
+    val temperature: Int,
+)
+
+data class WeeklyForecast(
+    val time: String,
+    val icon: Int,
+    val temperature: Int,
+)
 
 enum class SheetState {
     COLLAPSED, EXPANDED
@@ -35,9 +53,27 @@ fun HomeView(
     viewModel: HomeViewModel,
     onHomeClick: () -> Unit
 ) {
+    val hourlyForecasts = listOf(
+        HourlyForecast("12 AM", R.drawable.favorite, 19),
+        HourlyForecast("3 AM", R.drawable.favorite, 18),
+        HourlyForecast("6 AM", R.drawable.favorite, 19),
+        HourlyForecast("9 AM", R.drawable.favorite, 19),
+        HourlyForecast("12 PM", R.drawable.favorite, 18),
+        HourlyForecast("3 PM", R.drawable.favorite, 18),
+        HourlyForecast("6 PM", R.drawable.favorite, 18),
+        HourlyForecast("9 PM", R.drawable.favorite, 18),
+        HourlyForecast("12 AM", R.drawable.favorite, 18),
+    )
+
+    val weeklyForecasts = listOf(
+        WeeklyForecast("Today", R.drawable.favorite, 19),
+        WeeklyForecast("Day2", R.drawable.favorite, 19),
+        WeeklyForecast("Day3", R.drawable.favorite, 18),
+        WeeklyForecast("Day4", R.drawable.favorite, 19),
+        WeeklyForecast("Day5", R.drawable.favorite, 19),
+    )
     val weatherState = viewModel.weatherState
     val locationName = viewModel.locationName
-
     val bottomAppBarHeight = 60.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
 
@@ -197,6 +233,8 @@ fun HomeView(
                         )
 
                         WeatherBottomSheet(
+                            hourlyForecasts = hourlyForecasts,
+                            weeklyForecast = weeklyForecasts,
                             sheetState = sheetState,
                             onSheetStateChange = { newState -> sheetState = newState },
                             weatherData = weatherData,
@@ -211,11 +249,15 @@ fun HomeView(
 
 @Composable
 fun WeatherBottomSheet(
+    hourlyForecasts: List<HourlyForecast>,
+    weeklyForecast: List<WeeklyForecast>,
     sheetState: SheetState,
     onSheetStateChange: (SheetState) -> Unit,
     weatherData: WeatherResponse,
     modifier: Modifier = Modifier
 ) {
+    var selectedHourlyIndex by remember { mutableStateOf(0) }
+    var selectedWeeklyIndex by remember { mutableStateOf(0) }
     val topPartHeight = when (sheetState) {
         SheetState.COLLAPSED -> 280.dp
         SheetState.EXPANDED -> 500.dp
@@ -266,39 +308,97 @@ fun WeatherBottomSheet(
                 )
             }
 
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    WeatherCard("WIND", "${weatherData.wind.speed} m/s", R.drawable.wind)
-                    WeatherCard("FEELS LIKE", "${weatherData.main.feels_like.roundToInt()}°", R.drawable.feelslike)
-                }
+                item {
+                    Text(
+                        text = "Hourly Forecast",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        textAlign = TextAlign.Start
+                    )
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(hourlyForecasts.size) { index ->
+                            HourlyForecastItem(
+                                forecast = hourlyForecasts[index],
+                                isSelected = index == selectedHourlyIndex,
+                                onClick = { selectedHourlyIndex = index }
+                            )
+                        }
+                    }
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+                    Text(
+                        text = "Weekly Forecast",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        textAlign = TextAlign.Start
+                    )
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(weeklyForecast.size) { index ->
+                            WeeklyForecastItem(
+                                forecast = weeklyForecast[index],
+                                isSelected = index == selectedWeeklyIndex,
+                                onClick = { selectedWeeklyIndex = index }
+                            )
+                        }
+                    }
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        WeatherCard("WIND", "${weatherData.wind.speed} m/s", R.drawable.wind)
+                        WeatherCard("FEELS LIKE", "${weatherData.main.feels_like.roundToInt()}°", R.drawable.feelslike)
+                    }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    WeatherCard("VISIBILITY", "${weatherData.visibility} m", R.drawable.visibility)
-                    WeatherCard("CLOUDS", "${weatherData.clouds.all}%", R.drawable.clouds)
-                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        WeatherCard("VISIBILITY", "${weatherData.visibility} m", R.drawable.visibility)
+                        WeatherCard("CLOUDS", "${weatherData.clouds.all}%", R.drawable.clouds)
+                    }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    WeatherCard("HUMIDITY", "${weatherData.main.humidity}%", R.drawable.humidity)
-                    WeatherCard("PRESSURE", "${weatherData.main.pressure} mb", R.drawable.pressure)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        WeatherCard("HUMIDITY", "${weatherData.main.humidity}%", R.drawable.humidity)
+                        WeatherCard("PRESSURE", "${weatherData.main.pressure} mb", R.drawable.pressure)
+                    }
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun WeatherCard(label: String, value: String, iconResId: Int) {
@@ -335,7 +435,7 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
                     text = label,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = Color.Gray.copy(alpha = 0.7f)
                 )
             }
 
@@ -343,6 +443,108 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
 
             Text(
                 text = value,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+
+        }
+        }
+    }
+
+@Composable
+fun WeeklyForecastItem(
+    forecast: WeeklyForecast,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(180.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .border(
+                width = 2.dp,
+                color = Color(108, 97, 181),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .background(
+                if (isSelected) Color(108, 97, 181) else Color(46, 13, 99)
+            )
+            .padding(8.dp)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = forecast.time,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+
+            Image(
+                painter = painterResource(id = forecast.icon),
+                contentDescription = "Weather icon",
+                modifier = Modifier.size(48.dp)
+            )
+
+            Text(
+                text = "${forecast.temperature}°",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun HourlyForecastItem(
+    forecast: HourlyForecast,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(180.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .border(
+                width = 2.dp,
+                color = Color(108, 97, 181),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .background(
+                if (isSelected) Color(108, 97, 181) else Color(46, 13, 99)
+            )
+            .padding(8.dp)
+            .clickable { onClick() }, // when click on item
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = forecast.time,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+
+            Image(
+                painter = painterResource(id = forecast.icon),
+                contentDescription = "Weather icon",
+                modifier = Modifier.size(48.dp)
+            )
+
+            Text(
+                text = "${forecast.temperature}°",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
