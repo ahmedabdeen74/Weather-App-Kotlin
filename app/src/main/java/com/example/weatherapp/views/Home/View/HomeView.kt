@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,25 +24,21 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.bumptech.glide.request.RequestOptions
 import com.example.weatherapp.R
 import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.ui.theme.CustomFont
+import com.example.weatherapp.views.Home.ViewModel.ForecastDisplay
+import com.example.weatherapp.views.Home.ViewModel.ForecastState
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.WeatherState
+import getWeatherIconResource
 import kotlin.math.roundToInt
-data class HourlyForecast(
-    val time: String,
-    val icon: Int,
-    val temperature: Int,
-)
 
-data class WeeklyForecast(
-    val time: String,
-    val icon: Int,
-    val temperature: Int,
-)
 
 enum class SheetState {
     COLLAPSED, EXPANDED
@@ -53,26 +50,9 @@ fun HomeView(
     viewModel: HomeViewModel,
     onHomeClick: () -> Unit
 ) {
-    val hourlyForecasts = listOf(
-        HourlyForecast("12 AM", R.drawable.favorite, 19),
-        HourlyForecast("3 AM", R.drawable.favorite, 18),
-        HourlyForecast("6 AM", R.drawable.favorite, 19),
-        HourlyForecast("9 AM", R.drawable.favorite, 19),
-        HourlyForecast("12 PM", R.drawable.favorite, 18),
-        HourlyForecast("3 PM", R.drawable.favorite, 18),
-        HourlyForecast("6 PM", R.drawable.favorite, 18),
-        HourlyForecast("9 PM", R.drawable.favorite, 18),
-        HourlyForecast("12 AM", R.drawable.favorite, 18),
-    )
 
-    val weeklyForecasts = listOf(
-        WeeklyForecast("Today", R.drawable.favorite, 19),
-        WeeklyForecast("Day2", R.drawable.favorite, 19),
-        WeeklyForecast("Day3", R.drawable.favorite, 18),
-        WeeklyForecast("Day4", R.drawable.favorite, 19),
-        WeeklyForecast("Day5", R.drawable.favorite, 19),
-    )
     val weatherState = viewModel.weatherState
+    val forecastState = viewModel.forecastState
     val locationName = viewModel.locationName
     val bottomAppBarHeight = 60.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
@@ -165,7 +145,7 @@ fun HomeView(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Color.White)
+                            CircularProgressIndicator(color = Color(0xFF00BFFF))
                         }
                     }
                     is WeatherState.Error -> {
@@ -206,7 +186,7 @@ fun HomeView(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Medium,
                                 fontFamily = CustomFont,
-                                color = Color.Gray
+                                color = Color(0xFFA9A9A9)
                             )
                             Spacer(
                                 modifier = Modifier.height(8.dp)
@@ -233,11 +213,10 @@ fun HomeView(
                         )
 
                         WeatherBottomSheet(
-                            hourlyForecasts = hourlyForecasts,
-                            weeklyForecast = weeklyForecasts,
                             sheetState = sheetState,
                             onSheetStateChange = { newState -> sheetState = newState },
                             weatherData = weatherData,
+                            forecastState = forecastState,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
@@ -249,15 +228,13 @@ fun HomeView(
 
 @Composable
 fun WeatherBottomSheet(
-    hourlyForecasts: List<HourlyForecast>,
-    weeklyForecast: List<WeeklyForecast>,
     sheetState: SheetState,
     onSheetStateChange: (SheetState) -> Unit,
     weatherData: WeatherResponse,
+    forecastState: ForecastState,
     modifier: Modifier = Modifier
 ) {
     var selectedHourlyIndex by remember { mutableStateOf(0) }
-    var selectedWeeklyIndex by remember { mutableStateOf(0) }
     val topPartHeight = when (sheetState) {
         SheetState.COLLAPSED -> 280.dp
         SheetState.EXPANDED -> 500.dp
@@ -295,8 +272,64 @@ fun WeatherBottomSheet(
                     )
             )
         }
+        if (sheetState == SheetState.COLLAPSED) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Hourly Forecast",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont,
+                    color = Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    textAlign = TextAlign.Start
+                )
+                when (forecastState) {
+                    is ForecastState.Loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFF00BFFF))
+                        }
+                    }
+                    is ForecastState.Error -> {
+                        Text(
+                            text = "Couldn't load forecast",
+                            fontSize = 16.sp,
+                            color = Color.White.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    is ForecastState.Success -> {
+                        val forecastItems = forecastState.data
 
-        if (sheetState == SheetState.EXPANDED) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            itemsIndexed(forecastItems.take(8)) { index, item ->
+                                ForecastItem(
+                                    forecastDisplay = item,
+                                    isSelected = index == selectedHourlyIndex,
+                                    onClick = { selectedHourlyIndex = index }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (sheetState == SheetState.EXPANDED)
             IconButton(
                 onClick = { onSheetStateChange(SheetState.COLLAPSED) },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -316,58 +349,56 @@ fun WeatherBottomSheet(
             ) {
                 item {
                     Text(
-                        text = "Hourly Forecast",
+                        text = "Weather Timeline",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = CustomFont,
-                        color = Color.White,
+                        color =  Color.White,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp),
                         textAlign = TextAlign.Start
                     )
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
-                    ) {
-                        items(hourlyForecasts.size) { index ->
-                            HourlyForecastItem(
-                                forecast = hourlyForecasts[index],
-                                isSelected = index == selectedHourlyIndex,
-                                onClick = { selectedHourlyIndex = index }
+
+                    // Display forecast data
+                    when (forecastState) {
+                        is ForecastState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(180.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF00BFFF))
+                            }
+                        }
+                        is ForecastState.Error -> {
+                            Text(
+                                text = "Couldn't load forecast",
+                                fontSize = 16.sp,
+                                color = Color.White.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
-                    }
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
-                    Text(
-                        text = "Weekly Forecast",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = CustomFont,
-                        color = Color.White,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        textAlign = TextAlign.Start
-                    )
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
-                    ) {
-                        items(weeklyForecast.size) { index ->
-                            WeeklyForecastItem(
-                                forecast = weeklyForecast[index],
-                                isSelected = index == selectedWeeklyIndex,
-                                onClick = { selectedWeeklyIndex = index }
-                            )
+                        is ForecastState.Success -> {
+                            val forecastItems = forecastState.data
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) {
+                                itemsIndexed(forecastItems.take(40)) { index, item ->
+                                    ForecastItem(
+                                        forecastDisplay = item,
+                                        isSelected = index == selectedHourlyIndex,
+                                        onClick = { selectedHourlyIndex = index }
+                                    )
+                                }
+                            }
                         }
                     }
+
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier = Modifier.height(16.dp)
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -396,7 +427,7 @@ fun WeatherBottomSheet(
             }
         }
     }
-}
+
 
 
 
@@ -435,7 +466,7 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
                     text = label,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Gray.copy(alpha = 0.7f)
+                    color = Color(0xFFA9A9A9)
                 )
             }
 
@@ -452,17 +483,16 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
         }
         }
     }
-
 @Composable
-fun WeeklyForecastItem(
-    forecast: WeeklyForecast,
+fun ForecastItem(
+    forecastDisplay: ForecastDisplay,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .width(80.dp)
-            .height(180.dp)
+            .width(120.dp)
+            .height(190.dp)
             .clip(RoundedCornerShape(24.dp))
             .border(
                 width = 2.dp,
@@ -481,78 +511,43 @@ fun WeeklyForecastItem(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = forecast.time,
+                text = forecastDisplay.day,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White
             )
-
-            Image(
-                painter = painterResource(id = forecast.icon),
-                contentDescription = "Weather icon",
-                modifier = Modifier.size(48.dp)
-            )
-
             Text(
-                text = "${forecast.temperature}°",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-fun HourlyForecastItem(
-    forecast: HourlyForecast,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .width(80.dp)
-            .height(180.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .border(
-                width = 2.dp,
-                color = Color(108, 97, 181),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .background(
-                if (isSelected) Color(108, 97, 181) else Color(46, 13, 99)
-            )
-            .padding(8.dp)
-            .clickable { onClick() }, // when click on item
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = forecast.time,
+                text = forecastDisplay.time,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color = Color(0xFF00BFFF)
             )
-
+            val weatherIcon = getWeatherIconResource(forecastDisplay.description)
             Image(
-                painter = painterResource(id = forecast.icon),
-                contentDescription = "Weather icon",
-                modifier = Modifier.size(48.dp)
+                painter = painterResource(id = weatherIcon),
+                contentDescription = forecastDisplay.description,
+                modifier = Modifier.size(48.dp),
+                contentScale = ContentScale.Fit
             )
 
             Text(
-                text = "${forecast.temperature}°",
+                text = "${forecastDisplay.temp}°",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
+
+            Text(
+                text = forecastDisplay.description.capitalize(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFFA9A9A9),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
-
 // Extension function to capitalize first letter of each word
 fun String.capitalize(): String {
     return this.split(" ").joinToString(" ") { word ->
