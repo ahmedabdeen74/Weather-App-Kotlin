@@ -1,13 +1,13 @@
 package com.example.weatherapp.views.Home.ViewModel
 
 import android.location.Geocoder
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.ForecastItem
 import com.example.weatherapp.repo.WeatherRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -15,14 +15,17 @@ import java.util.Locale
 
 class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
 
-    var weatherState by mutableStateOf<WeatherState>(WeatherState.Loading)
-        private set
+    // Weather state flow
+    private val _weatherState = MutableStateFlow<WeatherState>(WeatherState.Loading)
+    val weatherState: StateFlow<WeatherState> = _weatherState.asStateFlow()
 
-    var forecastState by mutableStateOf<ForecastState>(ForecastState.Loading)
-        private set
+    // Forecast state flow
+    private val _forecastState = MutableStateFlow<ForecastState>(ForecastState.Loading)
+    val forecastState: StateFlow<ForecastState> = _forecastState.asStateFlow()
 
-    var locationName by mutableStateOf<String>("Loading...")
-        private set
+    // Location name state flow
+    private val _locationName = MutableStateFlow("Loading...")
+    val locationName: StateFlow<String> = _locationName.asStateFlow()
 
     fun fetchWeatherData(lat: Double, lon: Double, geocoder: Geocoder) {
         viewModelScope.launch {
@@ -32,30 +35,30 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address = addresses[0]
-                        locationName = address.locality ?: address.subAdminArea ?: address.adminArea
+                        _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea
                                 ?: "Unknown Location"
                     }
                 } catch (e: IOException) {
-                    locationName = "Location Unavailable"
+                    _locationName.value = "Location Unavailable"
                 }
 
                 // Fetch weather data
                 val response = repository.getWeatherData(lat, lon)
                 if (response.isSuccessful) {
                     response.body()?.let {
-                        weatherState = WeatherState.Success(it)
+                        _weatherState.value = WeatherState.Success(it)
                     } ?: run {
-                        weatherState = WeatherState.Error("Empty response")
+                        _weatherState.value = WeatherState.Error("Empty response")
                     }
                 } else {
-                    weatherState = WeatherState.Error("Error: ${response.code()}")
+                    _weatherState.value = WeatherState.Error("Error: ${response.code()}")
                 }
 
                 // Fetch forecast data
                 fetchForecastData(lat, lon)
 
             } catch (e: Exception) {
-                weatherState = WeatherState.Error(e.message ?: "Unknown error")
+                _weatherState.value = WeatherState.Error(e.message ?: "Unknown error")
             }
         }
     }
@@ -84,21 +87,21 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                                 description = forecastItem.weather.firstOrNull()?.description ?: "unknown"
                             )
                         }
-                        forecastState = ForecastState.Success(forecastItems)
+                        _forecastState.value = ForecastState.Success(forecastItems)
                     } ?: run {
-                        forecastState = ForecastState.Error("Empty forecast response")
+                        _forecastState.value = ForecastState.Error("Empty forecast response")
                     }
                 } else {
-                    forecastState =
+                    _forecastState.value =
                         ForecastState.Error("Error fetching forecast: ${response.code()}")
                 }
             } catch (e: Exception) {
-                forecastState = ForecastState.Error(e.message ?: "Unknown forecast error")
+                _forecastState.value = ForecastState.Error(e.message ?: "Unknown forecast error")
             }
         }
     }
-
 }
+
 // Add a new data class for simplified forecast display
 data class ForecastDisplay(
     val day: String,
@@ -107,4 +110,3 @@ data class ForecastDisplay(
     val temp: Int,
     val description: String
 )
-

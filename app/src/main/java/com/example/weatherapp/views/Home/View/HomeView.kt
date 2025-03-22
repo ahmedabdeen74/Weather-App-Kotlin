@@ -4,12 +4,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -27,8 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.bumptech.glide.request.RequestOptions
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.weatherapp.R
 import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.ui.theme.CustomFont
@@ -38,7 +34,6 @@ import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.WeatherState
 import getWeatherIconResource
 import kotlin.math.roundToInt
-
 
 enum class SheetState {
     COLLAPSED, EXPANDED
@@ -50,10 +45,11 @@ fun HomeView(
     viewModel: HomeViewModel,
     onHomeClick: () -> Unit
 ) {
+    // Collect the state flows
+    val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
+    val forecastState by viewModel.forecastState.collectAsStateWithLifecycle()
+    val locationName by viewModel.locationName.collectAsStateWithLifecycle()
 
-    val weatherState = viewModel.weatherState
-    val forecastState = viewModel.forecastState
-    val locationName = viewModel.locationName
     val bottomAppBarHeight = 60.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
 
