@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.ForecastItem
 import com.example.weatherapp.repo.WeatherRepository
+import com.example.weatherapp.views.Settings.TemperatureUnit
+import com.example.weatherapp.views.Settings.WindSpeedUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,12 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
     // Location name state flow
     private val _locationName = MutableStateFlow("Loading...")
     val locationName: StateFlow<String> = _locationName.asStateFlow()
+
+    private val _temperatureUnit = MutableStateFlow(TemperatureUnit.CELSIUS)
+    val temperatureUnit = _temperatureUnit.asStateFlow()
+
+    private val _windSpeedUnit = MutableStateFlow(WindSpeedUnit.METER_PER_SEC)
+    val windSpeedUnit = _windSpeedUnit.asStateFlow()
 
     fun fetchWeatherData(lat: Double, lon: Double, geocoder: Geocoder) {
         viewModelScope.launch {
@@ -100,7 +108,34 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
             }
         }
     }
+
+
+    fun setTemperatureUnit(unit: TemperatureUnit) {
+        _temperatureUnit.value = unit
+    }
+    fun convertTemperature(celsius: Double): Double {
+        return when (_temperatureUnit.value) {
+            TemperatureUnit.CELSIUS -> celsius
+            TemperatureUnit.KELVIN -> celsius + 273.15
+            TemperatureUnit.FAHRENHEIT -> (celsius * 9/5) + 32
+        }
+    }
+
+
+
+    fun setWindSpeedUnit(unit: WindSpeedUnit) {
+        _windSpeedUnit.value = unit
+    }
+
+    fun convertWindSpeed(meterPerSec: Double): Double {
+        return when (_windSpeedUnit.value) {
+            WindSpeedUnit.METER_PER_SEC -> meterPerSec
+            WindSpeedUnit.MILE_PER_HOUR -> meterPerSec * 2.23694 // Conversion factor from m/s to mph
+        }
+    }
+
 }
+
 
 // Add a new data class for simplified forecast display
 data class ForecastDisplay(
@@ -110,3 +145,4 @@ data class ForecastDisplay(
     val temp: Int,
     val description: String
 )
+

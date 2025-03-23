@@ -34,6 +34,8 @@ import com.example.weatherapp.views.Home.ViewModel.ForecastDisplay
 import com.example.weatherapp.views.Home.ViewModel.ForecastState
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.WeatherState
+import com.example.weatherapp.views.Settings.TemperatureUnit
+import com.example.weatherapp.views.Settings.WindSpeedUnit
 import getWeatherIconResource
 import kotlin.math.roundToInt
 
@@ -52,6 +54,9 @@ fun HomeView(
     val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
     val forecastState by viewModel.forecastState.collectAsStateWithLifecycle()
     val locationName by viewModel.locationName.collectAsStateWithLifecycle()
+    val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
+    val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
+
 
     val bottomAppBarHeight = 60.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
@@ -159,7 +164,20 @@ fun HomeView(
                         }
                     }
                     is WeatherState.Success -> {
+                        // Success state, proceed with displaying weather data
                         val weatherData = (weatherState as WeatherState.Success).data
+
+                        // Get temperature symbol
+                        val tempSymbol = when(temperatureUnit) {
+                            TemperatureUnit.CELSIUS -> "°C"
+                            TemperatureUnit.KELVIN -> "°K"
+                            TemperatureUnit.FAHRENHEIT -> "°F"
+                        }
+
+                        // Convert temperatures
+                        val mainTemp = viewModel.convertTemperature(weatherData.main.temp)
+                        val minTemp = viewModel.convertTemperature(weatherData.main.temp_min)
+                        val maxTemp = viewModel.convertTemperature(weatherData.main.temp_max)
 
                         Column(
                             modifier = Modifier
@@ -174,12 +192,25 @@ fun HomeView(
                                 fontFamily = CustomFont,
                                 color = Color.White
                             )
-                            Text(
-                                text = "${weatherData.main.temp.roundToInt()}°",
-                                fontSize = 96.sp,
-                                fontWeight = FontWeight.Thin,
-                                color = Color.White
-                            )
+
+                            Row(
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                                Text(
+                                    text = "${mainTemp.roundToInt()}",
+                                    fontSize = 96.sp,
+                                    fontWeight = FontWeight.Thin,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = tempSymbol,
+                                    fontSize = 44.sp,
+                                    fontWeight = FontWeight.Thin,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(bottom = 48.dp)
+                                )
+                            }
+
                             Text(
                                 text = weatherData.weather.firstOrNull()?.description?.capitalize() ?: "Unknown",
                                 fontSize = 20.sp,
@@ -187,16 +218,39 @@ fun HomeView(
                                 fontFamily = CustomFont,
                                 color = Color(0xFFA9A9A9)
                             )
-                            Spacer(
-                                modifier = Modifier.height(8.dp)
-                            )
-                            Text(
-                                text = "H:${weatherData.main.temp_max.roundToInt()}°  L:${weatherData.main.temp_min.roundToInt()}°",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = CustomFont,
-                                color = Color.White
-                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row {
+                                Text(
+                                    text = "H:${maxTemp.roundToInt()}",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = CustomFont,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = tempSymbol,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                                )
+                                Text(
+                                    text = "  L:${minTemp.roundToInt()}",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = CustomFont,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = tempSymbol,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                                )
+                            }
                         }
 
                         Spacer(
@@ -216,6 +270,9 @@ fun HomeView(
                             onSheetStateChange = { newState -> sheetState = newState },
                             weatherData = weatherData,
                             forecastState = forecastState,
+                            viewModel = viewModel,
+                            temperatureUnit = temperatureUnit,
+                            windSpeedUnit = windSpeedUnit,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
@@ -231,8 +288,26 @@ fun WeatherBottomSheet(
     onSheetStateChange: (SheetState) -> Unit,
     weatherData: WeatherResponse,
     forecastState: ForecastState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel,
+    temperatureUnit: TemperatureUnit,
+    windSpeedUnit: WindSpeedUnit
+
 ) {
+    val windSpeedUnitState by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
+    val windSpeedValue = viewModel.convertWindSpeed(weatherData.wind.speed)
+    val windSpeedUnitText = when(windSpeedUnitState) {
+        WindSpeedUnit.METER_PER_SEC -> "m/s"
+        WindSpeedUnit.MILE_PER_HOUR -> "mph"
+    }
+
+
+
+    val tempSymbol = when(temperatureUnit) {
+        TemperatureUnit.CELSIUS -> "°C"
+        TemperatureUnit.KELVIN -> "°K"
+        TemperatureUnit.FAHRENHEIT -> "°F"
+    }
     var selectedHourlyIndex by remember { mutableStateOf(0) }
     val topPartHeight = when (sheetState) {
         SheetState.COLLAPSED -> 280.dp
@@ -321,7 +396,10 @@ fun WeatherBottomSheet(
                                 ForecastItem(
                                     forecastDisplay = item,
                                     isSelected = index == selectedHourlyIndex,
-                                    onClick = { selectedHourlyIndex = index }
+                                    onClick = { selectedHourlyIndex = index },
+                                            viewModel = viewModel,
+                                    temperatureUnit = temperatureUnit
+
                                 )
                             }
                         }
@@ -389,7 +467,9 @@ fun WeatherBottomSheet(
                                     ForecastItem(
                                         forecastDisplay = item,
                                         isSelected = index == selectedHourlyIndex,
-                                        onClick = { selectedHourlyIndex = index }
+                                        onClick = { selectedHourlyIndex = index },
+                                        viewModel = viewModel,
+                                        temperatureUnit = temperatureUnit
                                     )
                                 }
                             }
@@ -403,8 +483,12 @@ fun WeatherBottomSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        WeatherCard("WIND", "${weatherData.wind.speed} m/s", R.drawable.wind)
-                        WeatherCard("FEELS LIKE", "${weatherData.main.feels_like.roundToInt()}°", R.drawable.feelslike)
+                        WeatherCard("WIND", "${String.format("%.1f", windSpeedValue)} $windSpeedUnitText", R.drawable.wind)
+                        WeatherCard(
+                            "FEELS LIKE",
+                            "${viewModel.convertTemperature(weatherData.main.feels_like).roundToInt()}$tempSymbol", // أضف tempSymbol هنا
+                            R.drawable.feelslike
+                        )
                     }
 
                     Row(
@@ -486,8 +570,19 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
 fun ForecastItem(
     forecastDisplay: ForecastDisplay,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    viewModel: HomeViewModel,
+    temperatureUnit: TemperatureUnit
 ) {
+    val convertedTemp = viewModel.convertTemperature(forecastDisplay.temp.toDouble()).roundToInt()
+
+
+    val tempSymbol = when (temperatureUnit) {
+        TemperatureUnit.CELSIUS -> "°C"
+        TemperatureUnit.KELVIN -> "°K"
+        TemperatureUnit.FAHRENHEIT -> "°F"
+    }
+
     Box(
         modifier = Modifier
             .width(120.dp)
@@ -529,12 +624,23 @@ fun ForecastItem(
                 contentScale = ContentScale.Fit
             )
 
-            Text(
-                text = "${forecastDisplay.temp}°",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Row(
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "$convertedTemp",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = tempSymbol,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color.White,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                )
+            }
 
             Text(
                 text = forecastDisplay.description.capitalize(),
@@ -547,6 +653,7 @@ fun ForecastItem(
         }
     }
 }
+
 // Extension function to capitalize first letter of each word
 fun String.capitalize(): String {
     return this.split(" ").joinToString(" ") { word ->

@@ -3,6 +3,7 @@ package com.example.weatherapp.views.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,15 +49,38 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 
+enum class TemperatureUnit {
+    CELSIUS,
+    KELVIN,
+    FAHRENHEIT
+}
+enum class WindSpeedUnit {
+    METER_PER_SEC,
+    MILE_PER_HOUR
+}
 @Composable
 fun SettingsView(
     onBackClick: () -> Unit,
+    viewModel: HomeViewModel
 ) {
+    val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
+    val windUnitIndex = when(windSpeedUnit) {
+        WindSpeedUnit.METER_PER_SEC -> 0
+        WindSpeedUnit.MILE_PER_HOUR -> 1
+    }
+    val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
+    val tempUnitIndex = when(temperatureUnit) {
+        TemperatureUnit.CELSIUS -> 0
+        TemperatureUnit.KELVIN -> 1
+        TemperatureUnit.FAHRENHEIT -> 2
+    }
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xff100b20),
@@ -104,15 +128,6 @@ fun SettingsView(
                     selectedOption = 0  // English selected
                 )
 
-                // Temperature Unit Setting
-                SettingCategory(
-                    title = "Temp Unit",
-                    options = listOf("Celsius °C", "Kelvin °K", "Fahrenheit °F"),
-                    fontSize = 12.sp,
-                    painter = painterResource(id = R.drawable.tempunit),
-                    selectedOption = 0  // Celsius selected
-                )
-
                 // Location Setting
                 SettingCategory(
                     title = "Location",
@@ -122,13 +137,39 @@ fun SettingsView(
                     selectedOption = 0  // Gps selected
                 )
 
+                // Temperature Unit Setting
+                SettingCategory(
+                    title = "Temp Unit",
+                    options = listOf("Celsius °C", "Kelvin °K", "Fahrenheit °F"),
+                    fontSize = 12.sp,
+                    painter = painterResource(id = R.drawable.tempunit),
+                    selectedOption = tempUnitIndex,
+                    onOptionSelected = { index ->
+                        val newUnit = when(index) {
+                            0 -> TemperatureUnit.CELSIUS
+                            1 -> TemperatureUnit.KELVIN
+                            2 -> TemperatureUnit.FAHRENHEIT
+                            else -> TemperatureUnit.CELSIUS
+                        }
+                        viewModel.setTemperatureUnit(newUnit)
+                    }
+                )
+
                 // Wind Speed Unit Setting
                 SettingCategory(
                     title = "Wind Speed Unit",
                     fontSize = 14.sp,
                     options = listOf("meter/sec", "mile/hour"),
                     painter = painterResource(id = R.drawable.windunit),
-                    selectedOption = 0  // meter/sec selected
+                    selectedOption = windUnitIndex,
+                    onOptionSelected = { index ->
+                        val newUnit = when(index) {
+                            0 -> WindSpeedUnit.METER_PER_SEC
+                            1 -> WindSpeedUnit.MILE_PER_HOUR
+                            else -> WindSpeedUnit.METER_PER_SEC
+                        }
+                        viewModel.setWindSpeedUnit(newUnit)
+                    }
                 )
             }
         }
@@ -141,7 +182,8 @@ fun SettingCategory(
     options: List<String>,
     painter: Painter,
     fontSize: TextUnit,
-    selectedOption: Int
+    selectedOption: Int,
+    onOptionSelected: (Int) -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -191,13 +233,16 @@ fun SettingCategory(
                 horizontalArrangement = if (options.size == 2)
                     Arrangement.SpaceEvenly
                 else
-                    Arrangement.SpaceBetween 
+                    Arrangement.SpaceBetween
             ) {
                 options.forEachIndexed { index, option ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         // Add modifier with padding to increase distance between items
-                        modifier = Modifier.padding(horizontal = 2.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 2.dp)
+                            .clickable { onOptionSelected(index) }
+
                     ) {
                         // Radio button (circle with white border)
                         Box(

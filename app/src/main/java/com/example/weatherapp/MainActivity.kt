@@ -169,6 +169,7 @@ class MainActivity : ComponentActivity() {
             }
             composable(ScreenRoute.SettingViewRoute.route) {
                 SettingsView(
+                    viewModel = homeViewModel,
                     onBackClick = {
                         navHostController.popBackStack(ScreenRoute.HomeViewRoute.route, inclusive = false)
                     }
