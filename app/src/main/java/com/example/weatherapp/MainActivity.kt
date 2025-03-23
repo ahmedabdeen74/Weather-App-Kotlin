@@ -24,6 +24,7 @@ import android.location.Geocoder
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModelFactory
+import com.example.weatherapp.views.Settings.SettingsView
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -154,10 +155,22 @@ class MainActivity : ComponentActivity() {
             composable(ScreenRoute.HomeViewRoute.route) {
                 HomeView(
                     viewModel = homeViewModel,
+                    onSettingClick = {
+                        navHostController.navigate(ScreenRoute.SettingViewRoute.route) {
+                           // popUpTo(ScreenRoute.HomeViewRoute) { inclusive = true }
+                        }
+                    },
                     onHomeClick = {
                         navHostController.navigate(ScreenRoute.HomeViewRoute.route) {
                             navHostController.popBackStack()
                         }
+                    }
+                )
+            }
+            composable(ScreenRoute.SettingViewRoute.route) {
+                SettingsView(
+                    onBackClick = {
+                        navHostController.popBackStack(ScreenRoute.HomeViewRoute.route, inclusive = false)
                     }
                 )
             }

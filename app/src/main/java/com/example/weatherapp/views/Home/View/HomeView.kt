@@ -1,5 +1,7 @@
 package com.example.weatherapp.views.Home.View
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +45,8 @@ enum class SheetState {
 @Composable
 fun HomeView(
     viewModel: HomeViewModel,
-    onHomeClick: () -> Unit
+    onHomeClick: () -> Unit,
+    onSettingClick: () -> Unit
 ) {
     // Collect the state flows
     val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
@@ -109,7 +112,7 @@ fun HomeView(
                         )
                     }
                     IconButton(
-                        onClick = { /* TODO: Action 5 */ },
+                        onClick = { onSettingClick() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
