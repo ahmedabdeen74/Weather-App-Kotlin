@@ -8,4 +8,6 @@ sealed class ScreenRoute(val route: String) {
     object HomeViewRoute : ScreenRoute("home_view")
     @Serializable
     object SettingViewRoute : ScreenRoute("setting_view")
+    @Serializable
+    object FavoritesViewRoute : ScreenRoute("favorites_view")
 }

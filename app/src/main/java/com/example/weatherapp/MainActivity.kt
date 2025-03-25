@@ -22,6 +22,7 @@ import com.example.weatherapp.views.Home.View.HomeView
 import com.google.android.gms.location.*
 import android.location.Geocoder
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
+//import com.example.weatherapp.views.Favourite.FavoritesViewModel
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.views.Settings.SettingsView
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
     lateinit var navHostController: NavHostController
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var homeViewModel: HomeViewModel
+   // private lateinit var favoritesViewModel: FavoritesViewModel
 
     // Request location permissions
     private val requestPermissionLauncher = registerForActivityResult(
@@ -164,7 +166,12 @@ class MainActivity : ComponentActivity() {
                         navHostController.navigate(ScreenRoute.HomeViewRoute.route) {
                             navHostController.popBackStack()
                         }
-                    }
+                    },
+                    onFavoriteClick ={
+                        navHostController.navigate(ScreenRoute.FavoritesViewRoute) {
+                            // popUpTo(ScreenRoute.HomeViewRoute) { inclusive = true }
+                        }
+                    },
                 )
             }
             composable(ScreenRoute.SettingViewRoute.route) {
@@ -175,6 +182,12 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
+//            composable(ScreenRoute.SettingViewRoute.route) {
+//                FavoritesView(
+//                    viewModel = favoritesViewModel,
+//                    navController = TODO(),
+//                )
+//            }
         }
     }
 }

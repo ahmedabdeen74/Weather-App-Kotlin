@@ -48,7 +48,8 @@ enum class SheetState {
 fun HomeView(
     viewModel: HomeViewModel,
     onHomeClick: () -> Unit,
-    onSettingClick: () -> Unit
+    onSettingClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
 ) {
     // Collect the state flows
     val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
@@ -84,7 +85,7 @@ fun HomeView(
                         )
                     }
                     IconButton(
-                        onClick = { /* TODO: Action 2 */ },
+                        onClick = { onFavoriteClick() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
