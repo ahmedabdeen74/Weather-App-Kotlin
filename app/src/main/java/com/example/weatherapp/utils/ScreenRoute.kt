@@ -1,13 +1,13 @@
-package com.example.weatherapp
+package com.example.weatherapp.utils
 
-import kotlinx.serialization.Serializable
 
-@Serializable
+
+
 sealed class ScreenRoute(val route: String) {
-    @Serializable
+
     object HomeViewRoute : ScreenRoute("home_view")
-    @Serializable
     object SettingViewRoute : ScreenRoute("setting_view")
-    @Serializable
+
     object FavoritesViewRoute : ScreenRoute("favorites_view")
+    object MapSelectionViewRoute : ScreenRoute("map_view")
 }

@@ -16,16 +16,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.weatherapp.repo.WeatherRepositoryImpl
-import com.example.weatherapp.views.Home.View.HomeView
-
-import com.google.android.gms.location.*
-import android.location.Geocoder
+import com.example.weatherapp.data.local.FavoriteLocationsDatabase
+import com.example.weatherapp.data.local.FavoriteLocationsLocalDataSource
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
-//import com.example.weatherapp.views.Favourite.FavoritesViewModel
+import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
+import com.example.weatherapp.repo.WeatherRepositoryImpl
+import com.example.weatherapp.utils.ScreenRoute
+import com.example.weatherapp.views.Favourite.View.FavoritesView
+import com.example.weatherapp.views.Favourite.View.MapSelectionView
+import com.example.weatherapp.views.Favourite.ViewModel.FavoritesViewModel
+import com.example.weatherapp.views.Favourite.ViewModel.FavoritesViewModelFactory
+import com.example.weatherapp.views.Home.View.HomeView
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.views.Settings.SettingsView
+import com.google.android.gms.location.*
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -33,7 +38,7 @@ class MainActivity : ComponentActivity() {
     lateinit var navHostController: NavHostController
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var homeViewModel: HomeViewModel
-   // private lateinit var favoritesViewModel: FavoritesViewModel
+    private lateinit var favoritesViewModel: FavoritesViewModel
 
     // Request location permissions
     private val requestPermissionLauncher = registerForActivityResult(
@@ -52,10 +57,17 @@ class MainActivity : ComponentActivity() {
         // Initialize location client
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Initialize ViewModel
+        // Initialize HomeViewModel
         val repository = WeatherRepositoryImpl.getInstance(RemoteDataSourceImpl())
         val factory = HomeViewModelFactory(repository)
         homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
+
+        // Initialize FavoritesViewModel with Context
+        val favoriteLocationsDao = FavoriteLocationsDatabase.getInstance(this).favoriteLocationsDao()
+        val localDataSource = FavoriteLocationsLocalDataSource(favoriteLocationsDao)
+        val favoritesRepository = FavoriteLocationsRepositoryImpl.getInstance(localDataSource)
+        val favoritesViewModelFactory = FavoritesViewModelFactory(favoritesRepository, this)
+        favoritesViewModel = ViewModelProvider(this, favoritesViewModelFactory)[FavoritesViewModel::class.java]
 
         // Request location permissions
         requestLocationPermissions()
@@ -100,7 +112,7 @@ class MainActivity : ComponentActivity() {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     // Location retrieved, fetch weather data
-                    val geocoder = Geocoder(this, Locale.getDefault())
+                    val geocoder = android.location.Geocoder(this, Locale.getDefault())
                     homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
                 } else {
                     // Last location might be null, request location updates
@@ -121,7 +133,7 @@ class MainActivity : ComponentActivity() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     // Location retrieved, fetch weather data
-                    val geocoder = Geocoder(this@MainActivity, Locale.getDefault())
+                    val geocoder = android.location.Geocoder(this@MainActivity, Locale.getDefault())
                     homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
 
                     // Remove updates after getting location
@@ -158,20 +170,16 @@ class MainActivity : ComponentActivity() {
                 HomeView(
                     viewModel = homeViewModel,
                     onSettingClick = {
-                        navHostController.navigate(ScreenRoute.SettingViewRoute.route) {
-                           // popUpTo(ScreenRoute.HomeViewRoute) { inclusive = true }
-                        }
+                        navHostController.navigate(ScreenRoute.SettingViewRoute.route)
                     },
                     onHomeClick = {
                         navHostController.navigate(ScreenRoute.HomeViewRoute.route) {
                             navHostController.popBackStack()
                         }
                     },
-                    onFavoriteClick ={
-                        navHostController.navigate(ScreenRoute.FavoritesViewRoute) {
-                            // popUpTo(ScreenRoute.HomeViewRoute) { inclusive = true }
-                        }
-                    },
+                    onFavoriteClick = {
+                        navHostController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                    }
                 )
             }
             composable(ScreenRoute.SettingViewRoute.route) {
@@ -182,12 +190,22 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
-//            composable(ScreenRoute.SettingViewRoute.route) {
-//                FavoritesView(
-//                    viewModel = favoritesViewModel,
-//                    navController = TODO(),
-//                )
-//            }
+            composable(ScreenRoute.FavoritesViewRoute.route) {
+                FavoritesView(
+                    viewModel = favoritesViewModel,
+                    onMapClick = {
+                        navHostController.navigate(ScreenRoute.MapSelectionViewRoute.route)
+                    }
+                )
+            }
+            composable(ScreenRoute.MapSelectionViewRoute.route) {
+                MapSelectionView(
+                    viewModel = favoritesViewModel,
+                    onBackClick = {
+                        navHostController.popBackStack(ScreenRoute.FavoritesViewRoute.route, inclusive = false)
+                    }
+                )
+            }
         }
     }
 }

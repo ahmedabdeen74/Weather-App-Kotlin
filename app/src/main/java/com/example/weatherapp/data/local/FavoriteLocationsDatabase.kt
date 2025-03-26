@@ -6,8 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.weatherapp.models.FavoriteLocation
 
-// Room Database
-@Database(entities = [FavoriteLocation::class], version = 1)
+@Database(entities = [FavoriteLocation::class], version = 2)
 abstract class FavoriteLocationsDatabase : RoomDatabase() {
     abstract fun favoriteLocationsDao(): FavoriteLocationsDao
 
@@ -21,7 +20,8 @@ abstract class FavoriteLocationsDatabase : RoomDatabase() {
                     context.applicationContext,
                     FavoriteLocationsDatabase::class.java,
                     "favorite_locations_database"
-                ).build()
+                ).fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
