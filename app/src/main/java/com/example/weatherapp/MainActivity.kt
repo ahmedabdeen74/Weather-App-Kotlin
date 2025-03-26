@@ -195,6 +195,9 @@ class MainActivity : ComponentActivity() {
                     viewModel = favoritesViewModel,
                     onMapClick = {
                         navHostController.navigate(ScreenRoute.MapSelectionViewRoute.route)
+                    },
+                    onBackClick = {
+                        navHostController.popBackStack(ScreenRoute.HomeViewRoute.route, inclusive = false)
                     }
                 )
             }

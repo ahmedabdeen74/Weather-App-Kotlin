@@ -10,7 +10,6 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
-
 class FavoritesViewModel(
     private val repository: FavoriteLocationsRepositoryImpl,
     private val context: Context
@@ -41,7 +40,9 @@ class FavoritesViewModel(
                         val geocoder = Geocoder(context, Locale.getDefault())
                         try {
                             val addresses = geocoder.getFromLocationName(query, 5)
-                            val suggestions = addresses?.map { it.locality ?: it.featureName } ?: emptyList()
+                            val suggestions = addresses?.mapNotNull {
+                                it.locality ?: it.featureName ?: it.adminArea
+                            }?.distinct() ?: emptyList()
                             _searchSuggestions.value = suggestions
                         } catch (e: Exception) {
                             _searchSuggestions.value = emptyList()

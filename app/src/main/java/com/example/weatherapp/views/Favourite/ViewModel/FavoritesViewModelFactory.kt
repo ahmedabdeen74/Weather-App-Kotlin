@@ -7,7 +7,7 @@ import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
 
 class FavoritesViewModelFactory(
     private val repository: FavoriteLocationsRepositoryImpl,
-    private val context: Context // لاستخدام Geocoder
+    private val context: Context
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")

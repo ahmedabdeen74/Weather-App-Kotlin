@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,12 +37,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.zIndex
+import com.airbnb.lottie.compose.*
+import com.example.weatherapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesView(
     viewModel: FavoritesViewModel,
     onMapClick: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
     val favoriteLocations by viewModel.favoriteLocations.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -54,21 +58,87 @@ fun FavoritesView(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp)
         ) {
-            items(favoriteLocations) { location ->
-                FavoriteLocationItem(
-                    location = location,
-                    onItemClick = {},
-                    onDeleteClick = {
-                        coroutineScope.launch {
-                            viewModel.removeFavoriteLocation(location)
-                        }
-                    }
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFF6C61B5),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Your Favorite Cities",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont,
+                    color = Color.White
                 )
+                Spacer(modifier = Modifier.width(10.dp))
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite Location",
+                    tint = Color(0xFF6C61B5),
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (favoriteLocations.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(top = 100.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation2))
+                    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { progress },
+                        modifier = Modifier.size(200.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "No cities added yet. Add Your City Now !",
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(paddingValues)
+                ) {
+                    items(favoriteLocations.reversed()) { location ->
+                        FavoriteLocationItem(
+                            location = location,
+                            onItemClick = {},
+                            onDeleteClick = {
+                                coroutineScope.launch {
+                                    viewModel.removeFavoriteLocation(location)
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -81,32 +151,126 @@ fun FavoriteLocationItem(
     onItemClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        onClick = onItemClick
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onItemClick),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A44)),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = location.name,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = CustomFont,
-            )
-            IconButton(onClick = onDeleteClick) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
                 Icon(
-                    Icons.Default.Delete,
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Location Icon",
+                    tint = Color(0xFF6C61B5),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(end = 8.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Column {
+                    Text(
+                        text = location.name.split("\n")[0],
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "lat & lon (${location.latitude}, ${location.longitude})",
+                        fontSize = 14.sp,
+                        fontFamily = CustomFont,
+                        color = Color(0xFFB0B0B0)
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = { showDialog = true },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
                     contentDescription = "Delete Location",
                     tint = Color.Yellow
                 )
             }
         }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = {
+                Text(
+                    text = "Confirm Deletion",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete ${location.name.split("\n")[0]}?",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = CustomFont
+                )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable {
+                            onDeleteClick()
+                            showDialog = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Yes",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { showDialog = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            containerColor = Color(0xFF1E2A44),
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 }
 
@@ -138,7 +302,7 @@ fun MapSelectionView(
 
     var searchQuery by remember { mutableStateOf("") }
     val searchSuggestions by viewModel.searchSuggestions.collectAsState()
-    var isSaved by remember { mutableStateOf(false) } // حالة الحفظ
+    var isSaved by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
@@ -167,7 +331,7 @@ fun MapSelectionView(
                         Icon(
                             Icons.Default.LocationOn,
                             contentDescription = "Back",
-                            tint = Color(108, 97, 181),
+                            tint = Color(0xFF6C61B5),
                         )
                     }
                 }
@@ -184,7 +348,7 @@ fun MapSelectionView(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     modifier = Modifier
                         .size(48.dp)
-                        .border(2.dp, Color(108, 97, 181), CircleShape),
+                        .border(2.dp, Color(0xFF6C61B5), CircleShape),
                     shape = CircleShape
                 ) {
                     Box(
@@ -255,7 +419,7 @@ fun MapSelectionView(
                         .width(250.dp)
                         .zIndex(1f),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(108, 97, 181),
+                        focusedBorderColor = Color(0xFF6C61B5),
                         unfocusedBorderColor = Color.Gray,
                         containerColor = Color.White
                     ),
