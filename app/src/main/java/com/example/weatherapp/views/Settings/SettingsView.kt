@@ -81,6 +81,14 @@ fun SettingsView(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted -> hasLocationPermission = isGranted }
 
+    // Update wind speed unit selection based on temperature unit change
+    LaunchedEffect(temperatureUnit) {
+        when (temperatureUnit) {
+            TemperatureUnit.CELSIUS, TemperatureUnit.KELVIN -> viewModel.setWindSpeedUnit(WindSpeedUnit.METER_PER_SEC)
+            TemperatureUnit.FAHRENHEIT -> viewModel.setWindSpeedUnit(WindSpeedUnit.MILE_PER_HOUR)
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -113,7 +121,7 @@ fun SettingsView(
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
                 modifier = Modifier
-                    .size(160.dp)
+                    .size(150.dp)
                     .align(Alignment.TopCenter)
                     .padding(top = 8.dp)
             )
@@ -122,12 +130,12 @@ fun SettingsView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(top = 160.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 140.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 SettingCategory(
                     title = "Language",
-                    options = listOf("English", "Arabic"),
+                    options = listOf("Default", "English", "Arabic"),
                     fontSize = 14.sp,
                     painter = painterResource(id = R.drawable.language),
                     selectedOption = 0
@@ -154,7 +162,7 @@ fun SettingsView(
                             }
                             1 -> { // Map
                                 viewModel.setLocationSource(LocationSource.MAP)
-                                ///navController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                                // navController.navigate(ScreenRoute.FavoritesViewRoute.route)
                             }
                         }
                     }
