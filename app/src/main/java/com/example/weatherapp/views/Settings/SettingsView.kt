@@ -4,83 +4,89 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import com.airbnb.lottie.compose.LottieAnimation
-
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.weatherapp.R
-
-
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.*
+import com.example.weatherapp.R
+import com.example.weatherapp.ui.theme.CustomFont
+import com.example.weatherapp.utils.ScreenRoute
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.views.Home.ViewModel.LocationSource
+import com.google.android.gms.location.FusedLocationProviderClient
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.TextUnit
+import androidx.navigation.NavHostController
 
 enum class TemperatureUnit {
-    CELSIUS,
-    KELVIN,
-    FAHRENHEIT
+    CELSIUS, KELVIN, FAHRENHEIT
 }
+
 enum class WindSpeedUnit {
-    METER_PER_SEC,
-    MILE_PER_HOUR
+    METER_PER_SEC, MILE_PER_HOUR
 }
+
 @Composable
 fun SettingsView(
     onBackClick: () -> Unit,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel,
+    navController: NavHostController,
+    fusedLocationClient: FusedLocationProviderClient
 ) {
     val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
-    val windUnitIndex = when(windSpeedUnit) {
+    val windUnitIndex = when (windSpeedUnit) {
         WindSpeedUnit.METER_PER_SEC -> 0
         WindSpeedUnit.MILE_PER_HOUR -> 1
     }
     val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
-    val tempUnitIndex = when(temperatureUnit) {
+    val tempUnitIndex = when (temperatureUnit) {
         TemperatureUnit.CELSIUS -> 0
         TemperatureUnit.KELVIN -> 1
         TemperatureUnit.FAHRENHEIT -> 2
     }
+    val locationSource by viewModel.locationSource.collectAsStateWithLifecycle()
+    val locationOption = when (locationSource) {
+        LocationSource.GPS -> 0
+        LocationSource.MAP -> 1
+    }
+    val context = LocalContext.current
+
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted -> hasLocationPermission = isGranted }
+
+    LaunchedEffect(Unit) {
+        if (!hasLocationPermission) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xff100b20),
@@ -119,25 +125,41 @@ fun SettingsView(
                     .padding(top = 160.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Language Setting
                 SettingCategory(
                     title = "Language",
                     options = listOf("English", "Arabic"),
                     fontSize = 14.sp,
                     painter = painterResource(id = R.drawable.language),
-                    selectedOption = 0  // English selected
+                    selectedOption = 0
                 )
 
-                // Location Setting
                 SettingCategory(
                     title = "Location",
-                    options = listOf("Gps", "Map"),
+                    options = listOf("GPS", "Map"),
                     fontSize = 14.sp,
                     painter = painterResource(id = R.drawable.location),
-                    selectedOption = 0  // Gps selected
+                    selectedOption = locationOption,
+                    onOptionSelected = { index ->
+                        when (index) {
+                            0 -> { // GPS
+                                viewModel.setLocationSource(LocationSource.GPS)
+                                if (hasLocationPermission) {
+                                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                                        if (location != null) {
+                                            val geocoder = android.location.Geocoder(context)
+                                            viewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                                        }
+                                    }
+                                }
+                            }
+                            1 -> { // Map
+                                viewModel.setLocationSource(LocationSource.MAP)
+                                ///navController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                            }
+                        }
+                    }
                 )
 
-                // Temperature Unit Setting
                 SettingCategory(
                     title = "Temp Unit",
                     options = listOf("Celsius °C", "Kelvin °K", "Fahrenheit °F"),
@@ -145,7 +167,7 @@ fun SettingsView(
                     painter = painterResource(id = R.drawable.tempunit),
                     selectedOption = tempUnitIndex,
                     onOptionSelected = { index ->
-                        val newUnit = when(index) {
+                        val newUnit = when (index) {
                             0 -> TemperatureUnit.CELSIUS
                             1 -> TemperatureUnit.KELVIN
                             2 -> TemperatureUnit.FAHRENHEIT
@@ -155,15 +177,14 @@ fun SettingsView(
                     }
                 )
 
-                // Wind Speed Unit Setting
                 SettingCategory(
                     title = "Wind Speed Unit",
-                    fontSize = 14.sp,
                     options = listOf("meter/sec", "mile/hour"),
+                    fontSize = 14.sp,
                     painter = painterResource(id = R.drawable.windunit),
                     selectedOption = windUnitIndex,
                     onOptionSelected = { index ->
-                        val newUnit = when(index) {
+                        val newUnit = when (index) {
                             0 -> WindSpeedUnit.METER_PER_SEC
                             1 -> WindSpeedUnit.MILE_PER_HOUR
                             else -> WindSpeedUnit.METER_PER_SEC
@@ -189,7 +210,6 @@ fun SettingCategory(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        // Background container image
         Image(
             painter = painterResource(id = R.drawable.container),
             contentDescription = null,
@@ -199,7 +219,6 @@ fun SettingCategory(
             contentScale = ContentScale.FillBounds
         )
 
-        // Content on top of the background
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -217,17 +236,14 @@ fun SettingCategory(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Category title
                 Text(
                     text = title,
                     color = Color.White,
                     style = MaterialTheme.typography.titleLarge
                 )
             }
-             Spacer(
-                 modifier = Modifier.height(8.dp)
-             )
-            // Options with radio buttons
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = if (options.size == 2)
@@ -238,13 +254,10 @@ fun SettingCategory(
                 options.forEachIndexed { index, option ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        // Add modifier with padding to increase distance between items
                         modifier = Modifier
                             .padding(horizontal = 2.dp)
                             .clickable { onOptionSelected(index) }
-
                     ) {
-                        // Radio button (circle with white border)
                         Box(
                             modifier = Modifier
                                 .size(20.dp)
@@ -255,7 +268,6 @@ fun SettingCategory(
                                 )
                                 .padding(4.dp)
                         ) {
-                            // Filled white circle if selected
                             if (index == selectedOption) {
                                 Box(
                                     modifier = Modifier
@@ -270,7 +282,6 @@ fun SettingCategory(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        // Option text
                         Text(
                             text = option,
                             fontSize = fontSize,

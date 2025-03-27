@@ -39,6 +39,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.zIndex
 import com.airbnb.lottie.compose.*
 import com.example.weatherapp.R
+import androidx.navigation.NavHostController
+import com.example.weatherapp.utils.ScreenRoute
+import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.views.Home.ViewModel.LocationSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,9 +50,12 @@ fun FavoritesView(
     viewModel: FavoritesViewModel,
     onMapClick: () -> Unit,
     onBackClick: () -> Unit,
+    navController: NavHostController,
+    homeViewModel: HomeViewModel
 ) {
     val favoriteLocations by viewModel.favoriteLocations.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = Color(0xff100b20),
@@ -114,7 +121,7 @@ fun FavoritesView(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "No cities added yet. Add Your City Now !",
+                        text = "No cities added yet. Add Your City Now!",
                         fontSize = 16.sp,
                         fontFamily = CustomFont,
                         color = Color.White,
@@ -130,7 +137,15 @@ fun FavoritesView(
                     items(favoriteLocations.reversed()) { location ->
                         FavoriteLocationItem(
                             location = location,
-                            onItemClick = {},
+                            homeViewModel = homeViewModel, // Pass HomeViewModel to check locationSource
+                            navController = navController, // Pass NavController for navigation
+                            onItemClick = {
+                                val geocoder = android.location.Geocoder(context)
+                                homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                                navController.navigate(ScreenRoute.HomeViewRoute.route) {
+                                    popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
+                                }
+                            },
                             onDeleteClick = {
                                 coroutineScope.launch {
                                     viewModel.removeFavoriteLocation(location)
@@ -148,16 +163,26 @@ fun FavoritesView(
 @Composable
 fun FavoriteLocationItem(
     location: FavoriteLocation,
+    homeViewModel: HomeViewModel, // Add HomeViewModel to access locationSource
+    navController: NavHostController, // Add NavController for navigation
     onItemClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    val locationSource by homeViewModel.locationSource.collectAsState()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable(onClick = onItemClick),
+            .clickable {
+                if (locationSource == LocationSource.MAP) {
+                    onItemClick() // Proceed to show weather if Map is selected
+                } else {
+                    showSettingsDialog = true // Show dialog if GPS is selected
+                }
+            },
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A44)),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -201,7 +226,7 @@ fun FavoriteLocationItem(
             }
 
             IconButton(
-                onClick = { showDialog = true },
+                onClick = { showDeleteDialog = true },
                 modifier = Modifier.size(36.dp)
             ) {
                 Icon(
@@ -213,9 +238,10 @@ fun FavoriteLocationItem(
         }
     }
 
-    if (showDialog) {
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showDeleteDialog = false },
             title = {
                 Text(
                     text = "Confirm Deletion",
@@ -240,7 +266,7 @@ fun FavoriteLocationItem(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clickable {
                             onDeleteClick()
-                            showDialog = false
+                            showDeleteDialog = false
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -257,11 +283,72 @@ fun FavoriteLocationItem(
                     modifier = Modifier
                         .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable { showDialog = false },
+                        .clickable { showDeleteDialog = false },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "No",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            containerColor = Color(0xFF1E2A44),
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+
+    // Settings Prompt Dialog
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = {
+                Text(
+                    text = "Enable Map",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont
+                )
+            },
+            text = {
+                Text(
+                    text = "You need to enable 'Map' in Settings to view weather from favorite locations.",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = CustomFont
+                )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable {
+                            navController.navigate(ScreenRoute.SettingViewRoute.route)
+                            showSettingsDialog = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Go to Settings",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { showSettingsDialog = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Cancel",
                         color = Color.Black,
                         fontSize = 16.sp,
                         fontFamily = CustomFont

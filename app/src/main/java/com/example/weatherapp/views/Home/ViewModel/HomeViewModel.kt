@@ -11,21 +11,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
 
-    // Weather state flow
     private val _weatherState = MutableStateFlow<WeatherState>(WeatherState.Loading)
     val weatherState: StateFlow<WeatherState> = _weatherState.asStateFlow()
 
-    // Forecast state flow
     private val _forecastState = MutableStateFlow<ForecastState>(ForecastState.Loading)
     val forecastState: StateFlow<ForecastState> = _forecastState.asStateFlow()
 
-    // Location name state flow
     private val _locationName = MutableStateFlow("Loading...")
     val locationName: StateFlow<String> = _locationName.asStateFlow()
 
@@ -35,22 +31,23 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
     private val _windSpeedUnit = MutableStateFlow(WindSpeedUnit.METER_PER_SEC)
     val windSpeedUnit = _windSpeedUnit.asStateFlow()
 
+    // state to track location source (GPS or Map)
+    private val _locationSource = MutableStateFlow(LocationSource.GPS)
+    val locationSource: StateFlow<LocationSource> = _locationSource.asStateFlow()
+
     fun fetchWeatherData(lat: Double, lon: Double, geocoder: Geocoder) {
         viewModelScope.launch {
             try {
-                // Update location name using Geocoder
                 try {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address = addresses[0]
-                        _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea
-                                ?: "Unknown Location"
+                        _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea ?: "Unknown Location"
                     }
-                } catch (e: IOException) {
+                } catch (e: Exception) {
                     _locationName.value = "Location Unavailable"
                 }
 
-                // Fetch weather data
                 val response = repository.getWeatherData(lat, lon)
                 if (response.isSuccessful) {
                     response.body()?.let {
@@ -62,9 +59,7 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                     _weatherState.value = WeatherState.Error("Error: ${response.code()}")
                 }
 
-                // Fetch forecast data
                 fetchForecastData(lat, lon)
-
             } catch (e: Exception) {
                 _weatherState.value = WeatherState.Error(e.message ?: "Unknown error")
             }
@@ -78,14 +73,10 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                 if (response.isSuccessful) {
                     response.body()?.let { forecastResponse ->
                         val forecastItems = forecastResponse.list.map { forecastItem ->
-                            val dateFormat =
-                                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                             val date = dateFormat.parse(forecastItem.dt_txt)
-
-                            val dayFormat =
-                                SimpleDateFormat("EEEE", Locale.getDefault())
-                            val timeFormat =
-                                SimpleDateFormat("h a", Locale.getDefault())
+                            val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
+                            val timeFormat = SimpleDateFormat("h a", Locale.getDefault())
 
                             ForecastDisplay(
                                 day = dayFormat.format(date!!),
@@ -100,8 +91,7 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                         _forecastState.value = ForecastState.Error("Empty forecast response")
                     }
                 } else {
-                    _forecastState.value =
-                        ForecastState.Error("Error fetching forecast: ${response.code()}")
+                    _forecastState.value = ForecastState.Error("Error fetching forecast: ${response.code()}")
                 }
             } catch (e: Exception) {
                 _forecastState.value = ForecastState.Error(e.message ?: "Unknown forecast error")
@@ -109,10 +99,10 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
         }
     }
 
-
     fun setTemperatureUnit(unit: TemperatureUnit) {
         _temperatureUnit.value = unit
     }
+
     fun convertTemperature(celsius: Double): Double {
         return when (_temperatureUnit.value) {
             TemperatureUnit.CELSIUS -> celsius
@@ -121,8 +111,6 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
         }
     }
 
-
-
     fun setWindSpeedUnit(unit: WindSpeedUnit) {
         _windSpeedUnit.value = unit
     }
@@ -130,12 +118,20 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
     fun convertWindSpeed(meterPerSec: Double): Double {
         return when (_windSpeedUnit.value) {
             WindSpeedUnit.METER_PER_SEC -> meterPerSec
-            WindSpeedUnit.MILE_PER_HOUR -> meterPerSec * 2.23694 // Conversion factor from m/s to mph
+            WindSpeedUnit.MILE_PER_HOUR -> meterPerSec * 2.23694
         }
     }
 
+    //  set location source
+    fun setLocationSource(source: LocationSource) {
+        _locationSource.value = source
+    }
 }
 
+// enum class for location source
+enum class LocationSource {
+    GPS, MAP
+}
 
 // Add a new data class for simplified forecast display
 data class ForecastDisplay(
