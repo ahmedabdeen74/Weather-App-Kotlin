@@ -24,7 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.weatherapp.models.FavoriteLocation
 import com.example.weatherapp.ui.theme.CustomFont
+import com.example.weatherapp.utils.ScreenRoute
 import com.example.weatherapp.views.Favourite.ViewModel.FavoritesViewModel
+import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.views.Home.ViewModel.LocationSource
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -36,13 +39,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.ui.zIndex
 import com.airbnb.lottie.compose.*
 import com.example.weatherapp.R
 import androidx.navigation.NavHostController
-import com.example.weatherapp.utils.ScreenRoute
-import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
-import com.example.weatherapp.views.Home.ViewModel.LocationSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,8 +138,8 @@ fun FavoritesView(
                     items(favoriteLocations.reversed()) { location ->
                         FavoriteLocationItem(
                             location = location,
-                            homeViewModel = homeViewModel, // Pass HomeViewModel to check locationSource
-                            navController = navController, // Pass NavController for navigation
+                            homeViewModel = homeViewModel,
+                            navController = navController,
                             onItemClick = {
                                 val geocoder = android.location.Geocoder(context)
                                 homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
@@ -163,8 +164,8 @@ fun FavoritesView(
 @Composable
 fun FavoriteLocationItem(
     location: FavoriteLocation,
-    homeViewModel: HomeViewModel, // Add HomeViewModel to access locationSource
-    navController: NavHostController, // Add NavController for navigation
+    homeViewModel: HomeViewModel,
+    navController: NavHostController,
     onItemClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -178,9 +179,9 @@ fun FavoriteLocationItem(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
                 if (locationSource == LocationSource.MAP) {
-                    onItemClick() // Proceed to show weather if Map is selected
+                    onItemClick()
                 } else {
-                    showSettingsDialog = true // Show dialog if GPS is selected
+                    showSettingsDialog = true
                 }
             },
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2A44)),
@@ -243,17 +244,28 @@ fun FavoriteLocationItem(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = {
-                Text(
-                    text = "Confirm Deletion",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = CustomFont
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Confirm Deletion",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Icon",
+                        tint = Color.Yellow,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete ${location.name.split("\n")[0]}?",
+                    text = "Are you sure you want to delete ${location.name.split("\n")[0]} ?",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontFamily = CustomFont
@@ -304,13 +316,24 @@ fun FavoriteLocationItem(
         AlertDialog(
             onDismissRequest = { showSettingsDialog = false },
             title = {
-                Text(
-                    text = "Enable Map",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = CustomFont
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Enable Map",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Map Icon",
+                        tint = Color(0xFF6C61B5),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             },
             text = {
                 Text(
@@ -360,7 +383,6 @@ fun FavoriteLocationItem(
         )
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapSelectionView(
