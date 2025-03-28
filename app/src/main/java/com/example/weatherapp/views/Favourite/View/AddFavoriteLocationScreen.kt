@@ -122,7 +122,7 @@ fun FavoritesView(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "No cities added yet. Add Your City Now!",
+                        text = "No Cities Added Yet. Add Your City Now !",
                         fontSize = 16.sp,
                         fontFamily = CustomFont,
                         color = Color.White,

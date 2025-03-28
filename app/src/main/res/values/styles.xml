@@ -1,0 +1,42 @@
+<resources>
+    <style name="CustomDatePickerDialog" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+
+        <item name="android:background">@color/custom_background</item>
+
+
+        <item name="android:windowBackground">@color/custom_text_color</item>
+        <item name="colorAccent">@color/custom_text_color</item>
+
+
+        <item name="android:textColorPrimary">@color/custom_text_color</item>
+
+        <item name="android:buttonBarPositiveButtonStyle">@style/CustomButtonStyle</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/CustomButtonStyle</item>
+    </style>
+
+    <style name="CustomButtonStyle" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/custom_text_color</item>
+    </style>
+
+
+    <style name="CustomTimePickerDialog" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+
+
+
+        <item name="colorAccent">@color/custom_text_color</item>
+
+
+
+        <item name="android:textColorPrimary">@color/custom_background</item>
+
+
+        <item name="android:buttonBarPositiveButtonStyle">@style/CustomButtonStyle</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/CustomButtonStyle</item>
+    </style>
+
+    <style name="CustomButtonStyle2" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/custom_text_color</item>
+    </style>
+</resources>
+
+

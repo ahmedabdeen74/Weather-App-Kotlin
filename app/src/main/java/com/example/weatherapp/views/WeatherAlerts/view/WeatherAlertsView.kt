@@ -2,26 +2,42 @@ package com.example.weatherapp.views.WeatherAlerts.view
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.widget.Space
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAlert
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.weatherapp.R
 import com.example.weatherapp.models.AlertType
 import com.example.weatherapp.models.WeatherAlert
 import com.example.weatherapp.ui.theme.CustomFont
+import com.example.weatherapp.ui.theme.Purple80
 import com.example.weatherapp.utils.AlarmReceiver
 import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModel
 import java.text.SimpleDateFormat
@@ -40,7 +56,7 @@ fun WeatherAlertsView(
         containerColor = Color(0xff100b20),
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Weather Alert", tint = Color.White)
+                Icon(Icons.Default.Add, contentDescription = "Add Weather Alert")
             }
         }
     ) { paddingValues ->
@@ -53,7 +69,9 @@ fun WeatherAlertsView(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBackClick) {
+                IconButton(
+                    onClick = onBackClick,
+                ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
@@ -69,17 +87,45 @@ fun WeatherAlertsView(
                     fontFamily = CustomFont,
                     color = Color.White
                 )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (alerts.isEmpty()) {
-                Text(
-                    text = "No alerts set yet. Add one now!",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = CustomFont,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                Spacer(modifier = Modifier.width(16.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.notifications_active),
+                    contentDescription = "Weather Notifications",
+                    colorFilter = ColorFilter.tint(color = Color(0xFF6C61B5)),
+                    modifier = Modifier
+                        .size(35.dp)
                 )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (alerts.isEmpty()){
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(top = 100.dp),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation5))
+                    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { progress },
+                        modifier = Modifier.size(200.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "No Alerts Set Yet. Add One Now !",
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             } else {
                 LazyColumn {
                     items(alerts) { alert ->
@@ -135,7 +181,7 @@ fun AlertItem(
                     fontFamily = CustomFont,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Type: ${alert.alertType.name}",
                     color = Color.White,
@@ -177,7 +223,6 @@ fun AlertItem(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAlertDialog(
@@ -193,80 +238,103 @@ fun AddAlertDialog(
     val timeText = selectedTime?.let { dateFormat.format(Date(it)) } ?: "Select Date & Time"
     val currentCalendar = Calendar.getInstance()
 
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            calendar.set(year, month, dayOfMonth)
-            val timePickerDialog = TimePickerDialog(
-                context,
-                { _, hourOfDay, minute ->
-                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    calendar.set(Calendar.MINUTE, minute)
-                    val newTime = calendar.timeInMillis
-                    val currentHour = currentCalendar.get(Calendar.HOUR_OF_DAY)
-                    val currentMinute = currentCalendar.get(Calendar.MINUTE)
-                    val isSameDay = calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
-                            calendar.get(Calendar.MONTH) == currentCalendar.get(Calendar.MONTH) &&
-                            calendar.get(Calendar.DAY_OF_MONTH) == currentCalendar.get(Calendar.DAY_OF_MONTH)
+    fun createDatePickerDialog(): DatePickerDialog {
+        return DatePickerDialog(
+            context,
+            R.style.CustomDatePickerDialog,
+            { _, year, month, dayOfMonth ->
+                calendar.set(year, month, dayOfMonth)
+                val timePickerDialog = TimePickerDialog(
+                    context,
+                    R.style.CustomTimePickerDialog,
+                    { _, hourOfDay, minute ->
+                        calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        calendar.set(Calendar.MINUTE, minute)
+                        val newTime = calendar.timeInMillis
+                        val currentHour = currentCalendar.get(Calendar.HOUR_OF_DAY)
+                        val currentMinute = currentCalendar.get(Calendar.MINUTE)
+                        val isSameDay = calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+                                calendar.get(Calendar.MONTH) == currentCalendar.get(Calendar.MONTH) &&
+                                calendar.get(Calendar.DAY_OF_MONTH) == currentCalendar.get(Calendar.DAY_OF_MONTH)
 
-                    when {
-                        newTime <= System.currentTimeMillis() -> {
-                            errorMessage = "Selected time is in the past"
+                        when {
+                            newTime <= System.currentTimeMillis() -> {
+                                errorMessage = "Selected time is in the past"
+                            }
+                            isSameDay && hourOfDay < currentHour -> {
+                                errorMessage = "Hour cannot be earlier than current hour ($currentHour)"
+                            }
+                            isSameDay && hourOfDay == currentHour && minute < currentMinute -> {
+                                errorMessage = "Minutes cannot be earlier than current minute ($currentMinute)"
+                            }
+                            else -> {
+                                selectedTime = newTime
+                                errorMessage = null
+                            }
                         }
-                        isSameDay && hourOfDay < currentHour -> {
-                            errorMessage = "Hour cannot be earlier than current hour ($currentHour)"
-                        }
-                        isSameDay && hourOfDay == currentHour && minute < currentMinute -> {
-                            errorMessage = "Minutes cannot be earlier than current minute ($currentMinute)"
-                        }
-                        else -> {
-                            selectedTime = newTime
-                            errorMessage = null
-                        }
+                    },
+                    currentCalendar.get(Calendar.HOUR_OF_DAY),
+                    currentCalendar.get(Calendar.MINUTE),
+                    true
+                ).apply {
+                    // When you press Cancel in the TimePickerDialog, the DatePickerDialog is opened again
+                    setOnCancelListener {
+                        createDatePickerDialog().show()
                     }
-                },
-                currentCalendar.get(Calendar.HOUR_OF_DAY),
-                currentCalendar.get(Calendar.MINUTE),
-                true
-            )
-            timePickerDialog.show()
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    ).apply {
-        datePicker.minDate = System.currentTimeMillis() - 1000 // Prevent selecting a date before today
+                }
+                timePickerDialog.show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = System.currentTimeMillis() - 1000
+        }
     }
+
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Add Weather Alert",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = CustomFont,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Add Weather Alert",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = CustomFont,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(
+                    imageVector = Icons.Default.AddAlert,
+                    contentDescription = "Add Weather Alert",
+                    tint = Color(0xFF6C61B5),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
         },
         text = {
-            Column {
-                OutlinedTextField(
-                    value = timeText,
-                    onValueChange = {  },
-                    label = { Text("Alert Time", color = Color.White) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { datePickerDialog.show() },
-                    enabled = false,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        disabledTextColor = if (selectedTime == null) Color.Gray else Color.White,
-                        focusedBorderColor = Color(0xFF6C61B5),
-                        unfocusedBorderColor = Color.Gray,
-                        disabledBorderColor = Color.Gray
+                Column {
+                    OutlinedTextField(
+                        value = timeText,
+                        onValueChange = {  },
+                        label = { Text("Alert Time", color = Color.White) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { createDatePickerDialog().show() },
+                        enabled = false,
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            disabledTextColor = if (selectedTime == null) Color.Gray else Color.White,
+                            focusedBorderColor = Color(0xFF6C61B5),
+                            unfocusedBorderColor = Color.Gray,
+                            disabledBorderColor = Color.Gray
+                        )
                     )
-                )
                 errorMessage?.let {
                     Text(
                         text = it,
@@ -276,26 +344,72 @@ fun AddAlertDialog(
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Alert Type:", color = Color.White, fontFamily = CustomFont)
+                Text(
+                    text = "Alert Type :",
+                    color = Color.White,
+                    fontFamily = CustomFont,
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 0.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
                         RadioButton(
+                            modifier = Modifier.size(16.dp),
                             selected = selectedType == AlertType.NOTIFICATION,
                             onClick = { selectedType = AlertType.NOTIFICATION },
                             colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF6C61B5))
                         )
-                        Text("Notification", color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Notification",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontFamily = CustomFont
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Weather Notifications",
+                                tint = Color(0xFF6C61B5),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
                         RadioButton(
+                            modifier = Modifier.size(16.dp),
                             selected = selectedType == AlertType.SOUND,
                             onClick = { selectedType = AlertType.SOUND },
                             colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF6C61B5))
                         )
-                        Text("Sound", color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Alarm",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontFamily = CustomFont
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = "Weather Alarm",
+                                tint = Color(0xFF6C61B5),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -334,3 +448,5 @@ fun AddAlertDialog(
         modifier = Modifier.padding(16.dp)
     )
 }
+
+

@@ -92,5 +92,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:18.1.0")
 
     implementation ("androidx.compose.material:material-icons-extended:1.5.4") // Use your Compose version
+    implementation ("com.google.android.material:material:1.11.0")
+
 }
 
