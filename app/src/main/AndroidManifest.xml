@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SET_ALARM" />
 
     <application
         android:allowBackup="true"
@@ -16,12 +18,20 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.WeatherApp"
-        tools:targetApi="31">
-
+        tools:targetApi="31"
+        >
+        <receiver
+            android:name=".utils.AlarmReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+            <action android:name="com.example.weatherapp.STOP_ALARM" />
+            </intent-filter>
+        </receiver>
         <!-- إضافة ميتا-داتا لمفتاح خرائط جوجل هنا -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBf6RJCWaAZRm84TsYOpfvnD52_a2_rlOQ"/>
+            android:value="AIzaSyBf6RJCWaAZRm84TsYOpfvnD52_a2_rlOQ" />
 
         <activity
             android:name=".MainActivity"
@@ -30,8 +40,10 @@
             android:theme="@style/Theme.WeatherApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
     </application>
+
 </manifest>

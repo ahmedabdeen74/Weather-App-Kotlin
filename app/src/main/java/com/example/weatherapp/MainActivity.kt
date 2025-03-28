@@ -21,6 +21,7 @@ import com.example.weatherapp.data.local.FavoriteLocationsLocalDataSource
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
 import com.example.weatherapp.repo.WeatherRepositoryImpl
+import com.example.weatherapp.utils.AlarmReceiver
 import com.example.weatherapp.utils.ScreenRoute
 import com.example.weatherapp.views.Favourite.View.FavoritesView
 import com.example.weatherapp.views.Favourite.View.MapSelectionView
@@ -31,6 +32,9 @@ import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.views.Home.ViewModel.LocationSource
 import com.example.weatherapp.views.Settings.SettingsView
+import com.example.weatherapp.views.WeatherAlerts.view.WeatherAlertsView
+import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModel
+import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModelFactory
 import com.google.android.gms.location.*
 import java.util.Locale
 
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var favoritesViewModel: FavoritesViewModel
+    private lateinit var weatherAlertsViewModel: WeatherAlertsViewModel
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -65,6 +70,14 @@ class MainActivity : ComponentActivity() {
         val favoritesViewModelFactory = FavoritesViewModelFactory(favoritesRepository, this)
         favoritesViewModel = ViewModelProvider(this, favoritesViewModelFactory)[FavoritesViewModel::class.java]
 
+        val weatherAlertsViewModelFactory = WeatherAlertsViewModelFactory(this)
+        weatherAlertsViewModel = ViewModelProvider(this, weatherAlertsViewModelFactory)[WeatherAlertsViewModel::class.java]
+
+        // Processing tapping on the sound notification to stop the sound
+        if (intent.getBooleanExtra("stopSound", false)) {
+            AlarmReceiver.stopAlarmSound()
+        }
+
         requestLocationPermissions()
 
         setContent {
@@ -85,7 +98,8 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
             )
         } else {
@@ -170,6 +184,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onFavoriteClick = {
                         navHostController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                    },
+                    onAlertsClick = {
+                        navHostController.navigate(ScreenRoute.WeatherAlertsViewRoute.route)
                     }
                 )
             }
@@ -201,7 +218,15 @@ class MainActivity : ComponentActivity() {
                     viewModel = favoritesViewModel,
                     onBackClick = {
                         navHostController.popBackStack(ScreenRoute.FavoritesViewRoute.route, inclusive = false)
-                    },
+                    }
+                )
+            }
+            composable(ScreenRoute.WeatherAlertsViewRoute.route) {
+                WeatherAlertsView(
+                    viewModel = weatherAlertsViewModel,
+                    onBackClick = {
+                        navHostController.popBackStack(ScreenRoute.HomeViewRoute.route, inclusive = false)
+                    }
                 )
             }
         }

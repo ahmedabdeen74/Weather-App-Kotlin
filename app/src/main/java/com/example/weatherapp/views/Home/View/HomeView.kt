@@ -50,6 +50,7 @@ fun HomeView(
     onHomeClick: () -> Unit,
     onSettingClick: () -> Unit,
     onFavoriteClick: () -> Unit,
+    onAlertsClick:() -> Unit,
 ) {
     // Collect the state flows
     val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
@@ -90,24 +91,13 @@ fun HomeView(
                     ) {
                         Icon(
                             modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.favorite),
+                            painter = painterResource(id = R.drawable.map),
                             contentDescription = "Favorite",
                             tint = Color.White
                         )
                     }
                     IconButton(
-                        onClick = { /* TODO: Action 3 */ },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.map),
-                            contentDescription = "Map",
-                            tint = Color.White
-                        )
-                    }
-                    IconButton(
-                        onClick = { /* TODO: Action 4 */ },
+                        onClick = { onAlertsClick() },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
