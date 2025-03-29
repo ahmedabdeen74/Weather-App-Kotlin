@@ -44,6 +44,7 @@ import androidx.compose.ui.zIndex
 import com.airbnb.lottie.compose.*
 import com.example.weatherapp.R
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +58,37 @@ fun FavoritesView(
     val favoriteLocations by viewModel.favoriteLocations.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val locationSource by homeViewModel.locationSource.collectAsState()
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Color(0xff100b20),
         floatingActionButton = {
-            FloatingActionButton(onClick = { onMapClick() }) {
+            FloatingActionButton(
+                onClick = {
+                    if (locationSource == LocationSource.MAP) {
+                        onMapClick()
+                    } else {
+                        showSettingsDialog = true
+                    }
+                }
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Favorite Location")
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(16.dp)
+            ) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = Color(0xFF1E2A44),
+                    contentColor = Color.White,
+                    actionColor = Color(0xFF6C61B5),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
             }
         }
     ) { paddingValues ->
@@ -147,16 +173,87 @@ fun FavoritesView(
                                     popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
                                 }
                             },
-                            onDeleteClick = {
-                                coroutineScope.launch {
-                                    viewModel.removeFavoriteLocation(location)
-                                }
-                            }
+                            onDeleteClick = { viewModel.removeFavoriteLocation(it) },
+                            onUndoClick = { viewModel.addFavoriteLocation(it) },
+                            snackbarHostState = snackbarHostState,
+                            coroutineScope = coroutineScope
                         )
                     }
                 }
             }
         }
+    }
+
+    // Settings Prompt Dialog for FloatingActionButton
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Enable Map",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Map Icon",
+                        tint = Color(0xFF6C61B5),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "You need to enable 'Map' in Settings to add favorite locations.",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = CustomFont
+                )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable {
+                            navController.navigate(ScreenRoute.SettingViewRoute.route)
+                            showSettingsDialog = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Go to Settings",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { showSettingsDialog = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            containerColor = Color(0xFF1E2A44),
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 }
 
@@ -167,7 +264,10 @@ fun FavoriteLocationItem(
     homeViewModel: HomeViewModel,
     navController: NavHostController,
     onItemClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: (FavoriteLocation) -> Unit,
+    onUndoClick: (FavoriteLocation) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -277,7 +377,22 @@ fun FavoriteLocationItem(
                         .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clickable {
-                            onDeleteClick()
+                            onDeleteClick(location)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Location deleted successfully",
+                                    actionLabel = "Undo",
+                                    duration = SnackbarDuration.Long
+                                ).let { result ->
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        onUndoClick(location)
+                                        snackbarHostState.showSnackbar(
+                                            message = "Location restored successfully",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
                             showDeleteDialog = false
                         },
                     contentAlignment = Alignment.Center
