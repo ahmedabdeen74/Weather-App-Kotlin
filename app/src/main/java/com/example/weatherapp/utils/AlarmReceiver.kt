@@ -32,6 +32,7 @@ class AlarmReceiver : BroadcastReceiver() {
             stopAlarmSound()
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(intent.getStringExtra("alertId")?.hashCode() ?: 0)
+            Log.d("AlarmDebug", "Received ACTION_STOP_ALARM, notification canceled")
             return
         }
 
@@ -104,12 +105,12 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         val openPendingIntent = PendingIntent.getActivity(
             context,
-            alertId.hashCode(), // Use a unique hashCode for each notification
+            alertId.hashCode(),
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        //Setting PendingIntent to turn off audio only
+        // Setting PendingIntent to turn off audio only
         val stopIntent = Intent(context, AlarmReceiver::class.java).apply {
             action = ACTION_STOP_ALARM
             putExtra("alertId", alertId)
@@ -128,8 +129,8 @@ class AlarmReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPendingIntent)
             .addAction(R.drawable.alarm, "Stop Sound", stopPendingIntent)
-            .setAutoCancel(true) // Cancels when you tap the notification or the "Stop Sound" button.
-            .setOngoing(true) // Makes the notification persistent until the user interacts with it.
+            .setAutoCancel(true)
+            .setOngoing(true)
             .build()
 
         Log.d("AlarmDebug", "Showing alarm notification for ID: $alertId at ${System.currentTimeMillis()}")

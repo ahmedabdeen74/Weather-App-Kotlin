@@ -2,8 +2,9 @@ package com.example.weatherapp.views.WeatherAlerts.view
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.widget.Space
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +14,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,9 +37,9 @@ import com.example.weatherapp.R
 import com.example.weatherapp.models.AlertType
 import com.example.weatherapp.models.WeatherAlert
 import com.example.weatherapp.ui.theme.CustomFont
-import com.example.weatherapp.ui.theme.Purple80
-import com.example.weatherapp.utils.AlarmReceiver
 import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,6 +49,10 @@ fun WeatherAlertsView(
     viewModel: WeatherAlertsViewModel,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     val alerts by viewModel.alerts.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -57,6 +61,20 @@ fun WeatherAlertsView(
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Weather Alert")
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(16.dp)
+            ) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = Color(0xFF1E2A44),
+                    contentColor = Color.White,
+                    actionColor = Color(0xFF6C61B5),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
             }
         }
     ) { paddingValues ->
@@ -98,7 +116,7 @@ fun WeatherAlertsView(
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (alerts.isEmpty()){
+            if (alerts.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -128,10 +146,14 @@ fun WeatherAlertsView(
                 }
             } else {
                 LazyColumn {
-                    items(alerts) { alert ->
+                    items(alerts.reversed()) { alert ->
                         AlertItem(
                             alert = alert,
-                            onDisableClick = { viewModel.disableAlert(alert.id) }
+                            onDeleteClick = { viewModel.deleteAlert(alert.id) },
+                            onUndoClick = { viewModel.undoDeleteAlert() },
+                            getDeletedAlertsCount = { viewModel.getDeletedAlertsCount() },
+                            snackbarHostState = snackbarHostState,
+                            coroutineScope = coroutineScope
                         )
                     }
                 }
@@ -153,10 +175,30 @@ fun WeatherAlertsView(
 @Composable
 fun AlertItem(
     alert: WeatherAlert,
-    onDisableClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onUndoClick: suspend () -> Boolean,
+    getDeletedAlertsCount: () -> Int,
+    snackbarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope
 ) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-    val triggerTimeText = dateFormat.format(Date(alert.triggerTime))
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = alert.triggerTime
+
+    val currentCalendar = Calendar.getInstance()
+    val isToday = calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+            calendar.get(Calendar.MONTH) == currentCalendar.get(Calendar.MONTH) &&
+            calendar.get(Calendar.DAY_OF_MONTH) == currentCalendar.get(Calendar.DAY_OF_MONTH)
+
+    val dayNames = arrayOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+    val dayName = if (isToday) "Today" else dayNames[calendar.get(Calendar.DAY_OF_WEEK) - 1]
+
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val timeText = timeFormat.format(Date(alert.triggerTime))
+    val dateFormat2 = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val dateText = dateFormat2.format(Date(alert.triggerTime))
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -175,54 +217,186 @@ fun AlertItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Time: $triggerTimeText",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = CustomFont,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Type: ${alert.alertType.name}",
-                    color = Color.White,
+                    text = "Date: $dateText",
+                    color = Color(0xFFB7ACFF),
                     fontSize = 14.sp,
-                    fontFamily = CustomFont
+                    fontFamily = CustomFont,
+                    fontWeight = FontWeight.Normal
                 )
-            }
-            if (alert.isActive) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (alert.alertType == AlertType.SOUND && System.currentTimeMillis() >= alert.triggerTime) {
-                        OutlinedButton(
-                            onClick = { AlarmReceiver.stopAlarmSound() },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text("Stop Sound", fontSize = 12.sp, fontFamily = CustomFont)
-                        }
-                    }
-                    Button(
-                        onClick = onDisableClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C61B5)),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Text("Disable", fontSize = 12.sp, fontFamily = CustomFont)
-                    }
+                    Text(
+                        text = "Time: $timeText",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = dayName,
+                        color = Color(0xFF6DFFE7),
+                        fontSize = 14.sp,
+                        fontFamily = CustomFont,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-            } else {
-                Text(
-                    text = "Disabled",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    fontFamily = CustomFont,
-                    modifier = Modifier.padding(start = 8.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Type: ${alert.alertType.name}",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontFamily = CustomFont
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = if (alert.alertType == AlertType.NOTIFICATION)
+                            Icons.Default.Notifications else Icons.Default.Alarm,
+                        contentDescription = "Alert Type",
+                        tint = if (alert.alertType == AlertType.NOTIFICATION)
+                            Color(0xFF9C91FF) else Color(0xFFFF9D5C),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            IconButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Location",
+                    tint = Color.Yellow
                 )
             }
         }
     }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Confirm Deletion",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = CustomFont
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Icon",
+                        tint = Color.Yellow,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this alert scheduled for ${dateFormat.format(Date(alert.triggerTime))} ?",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = CustomFont
+                )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF6C61B5), shape = MaterialTheme.shapes.small)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable {
+                            onDeleteClick()
+                            coroutineScope.launch {
+                                if (alert.isActive) {
+                                    // Alert is active, we display Snackbar with Undo option
+                                    val remainingCount = getDeletedAlertsCount()
+                                    val message = if (remainingCount > 0) {
+                                        "Alert deleted successfully ($remainingCount remaining)"
+                                    } else {
+                                        "Alert deleted successfully"
+                                    }
+                                    snackbarHostState.showSnackbar(
+                                        message = message,
+                                        actionLabel = if (remainingCount > 0) "Undo" else null,
+                                        duration = SnackbarDuration.Long
+                                    ).let { result ->
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            val isActive = onUndoClick()
+                                            Log.d("AlertItem", "After undo, isActive: $isActive")
+                                            val newRemainingCount = getDeletedAlertsCount()
+                                            val undoMessage = if (isActive) {
+                                                if (newRemainingCount > 0) {
+                                                    "Alert restored successfully"
+                                                } else {
+                                                    "Alert restored successfully"
+                                                }
+                                            } else {
+                                                if (newRemainingCount > 0) {
+                                                    "Alert restored but expired"
+                                                } else {
+                                                    "Alert restored but expired"
+                                                }
+                                            }
+                                            snackbarHostState.showSnackbar(
+                                                message = undoMessage,
+                                                actionLabel = if (newRemainingCount > 0) "Undo" else null,
+                                                duration = SnackbarDuration.Long
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // The alert has expired, we are displaying the Snackbar without the Undo option.
+                                    snackbarHostState.showSnackbar(
+                                        message = "Expired alert deleted successfully",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                            showDeleteDialog = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Yes",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFB0B0B0), shape = MaterialTheme.shapes.small)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { showDeleteDialog = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontFamily = CustomFont
+                    )
+                }
+            },
+            containerColor = Color(0xFF1E2A44),
+            shape = MaterialTheme.shapes.medium
+        )
+    }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAlertDialog(
@@ -277,7 +451,6 @@ fun AddAlertDialog(
                     currentCalendar.get(Calendar.MINUTE),
                     true
                 ).apply {
-                    // When you press Cancel in the TimePickerDialog, the DatePickerDialog is opened again
                     setOnCancelListener {
                         createDatePickerDialog().show()
                     }
@@ -291,7 +464,6 @@ fun AddAlertDialog(
             datePicker.minDate = System.currentTimeMillis() - 1000
         }
     }
-
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -319,22 +491,22 @@ fun AddAlertDialog(
             }
         },
         text = {
-                Column {
-                    OutlinedTextField(
-                        value = timeText,
-                        onValueChange = {  },
-                        label = { Text("Alert Time", color = Color.White) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { createDatePickerDialog().show() },
-                        enabled = false,
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            disabledTextColor = if (selectedTime == null) Color.Gray else Color.White,
-                            focusedBorderColor = Color(0xFF6C61B5),
-                            unfocusedBorderColor = Color.Gray,
-                            disabledBorderColor = Color.Gray
-                        )
+            Column {
+                OutlinedTextField(
+                    value = timeText,
+                    onValueChange = { },
+                    label = { Text("Alert Time", color = Color.White) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { createDatePickerDialog().show() },
+                    enabled = false,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        disabledTextColor = if (selectedTime == null) Color.Gray else Color.White,
+                        focusedBorderColor = Color(0xFF6C61B5),
+                        unfocusedBorderColor = Color.Gray,
+                        disabledBorderColor = Color.Gray
                     )
+                )
                 errorMessage?.let {
                     Text(
                         text = it,
@@ -390,8 +562,8 @@ fun AddAlertDialog(
                     ) {
                         RadioButton(
                             modifier = Modifier.size(16.dp),
-                            selected = selectedType == AlertType.SOUND,
-                            onClick = { selectedType = AlertType.SOUND },
+                            selected = selectedType == AlertType.ALARM,
+                            onClick = { selectedType = AlertType.ALARM },
                             colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF6C61B5))
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -448,5 +620,3 @@ fun AddAlertDialog(
         modifier = Modifier.padding(16.dp)
     )
 }
-
-

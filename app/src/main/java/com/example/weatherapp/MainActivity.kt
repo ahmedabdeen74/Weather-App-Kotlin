@@ -2,11 +2,13 @@ package com.example.weatherapp
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,8 +20,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.weatherapp.data.local.FavoriteLocationsDatabase
 import com.example.weatherapp.data.local.FavoriteLocationsLocalDataSource
+import com.example.weatherapp.data.local.WeatherAlertsDatabase
+import com.example.weatherapp.data.local.WeatherAlertsLocalDataSourceImpl
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
+import com.example.weatherapp.repo.WeatherAlertsRepositoryImpl
 import com.example.weatherapp.repo.WeatherRepositoryImpl
 import com.example.weatherapp.utils.AlarmReceiver
 import com.example.weatherapp.utils.ScreenRoute
@@ -55,26 +60,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        //  HomeViewModel
         val repository = WeatherRepositoryImpl.getInstance(RemoteDataSourceImpl())
         val factory = HomeViewModelFactory(repository)
         homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
 
+        //  FavoritesViewModel
         val favoriteLocationsDao = FavoriteLocationsDatabase.getInstance(this).favoriteLocationsDao()
         val localDataSource = FavoriteLocationsLocalDataSource(favoriteLocationsDao)
         val favoritesRepository = FavoriteLocationsRepositoryImpl.getInstance(localDataSource)
         val favoritesViewModelFactory = FavoritesViewModelFactory(favoritesRepository, this)
         favoritesViewModel = ViewModelProvider(this, favoritesViewModelFactory)[FavoritesViewModel::class.java]
 
-        val weatherAlertsViewModelFactory = WeatherAlertsViewModelFactory(this)
+        // WeatherAlertsViewModel
+        val weatherAlertsDatabase = WeatherAlertsDatabase.getInstance(this)
+        val weatherAlertsLocalDataSource = WeatherAlertsLocalDataSourceImpl(weatherAlertsDatabase.weatherAlertsDao())
+        val weatherAlertsRepository = WeatherAlertsRepositoryImpl.getInstance(weatherAlertsLocalDataSource)
+        val weatherAlertsViewModelFactory = WeatherAlertsViewModelFactory(this, weatherAlertsRepository)
         weatherAlertsViewModel = ViewModelProvider(this, weatherAlertsViewModelFactory)[WeatherAlertsViewModel::class.java]
 
         // Processing tapping on the sound notification to stop the sound
-        if (intent.getBooleanExtra("stopSound", false)) {
+        val stopSound = intent.getBooleanExtra("stopSound", false)
+        if (stopSound) {
             AlarmReceiver.stopAlarmSound()
         }
 
@@ -164,6 +177,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     @Composable
     fun SetupNavHost() {
         NavHost(
