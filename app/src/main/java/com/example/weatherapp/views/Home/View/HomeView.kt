@@ -37,6 +37,9 @@ import com.example.weatherapp.views.Home.ViewModel.WeatherState
 import com.example.weatherapp.views.Settings.TemperatureUnit
 import com.example.weatherapp.views.Settings.WindSpeedUnit
 import getWeatherIconResource
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlin.math.roundToInt
 
 enum class SheetState {
@@ -567,12 +570,19 @@ fun ForecastItem(
 ) {
     val convertedTemp = viewModel.convertTemperature(forecastDisplay.temp.toDouble()).roundToInt()
 
-
     val tempSymbol = when (temperatureUnit) {
         TemperatureUnit.CELSIUS -> "°C"
         TemperatureUnit.KELVIN -> "°K"
         TemperatureUnit.FAHRENHEIT -> "°F"
     }
+
+    // Get the current day name
+    val currentCalendar = Calendar.getInstance()
+    val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
+    val currentDay = dayFormat.format(currentCalendar.time)
+
+    // Determine if the forecast day is today
+    val displayDay = if (forecastDisplay.day == currentDay) "Today" else forecastDisplay.day
 
     Box(
         modifier = Modifier
@@ -596,16 +606,18 @@ fun ForecastItem(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = forecastDisplay.day,
+                text = displayDay, // Use the computed displayDay
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color =Color.White, 
+                fontFamily = CustomFont
             )
             Text(
                 text = forecastDisplay.time,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF00BFFF)
+                color = Color(0xFF00BFFF),
+                fontFamily = CustomFont
             )
             val weatherIcon = getWeatherIconResource(forecastDisplay.description)
             Image(
@@ -622,14 +634,16 @@ fun ForecastItem(
                     text = "$convertedTemp",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.White,
+                    fontFamily = CustomFont
                 )
                 Text(
                     text = tempSymbol,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color.White,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                    fontFamily = CustomFont
                 )
             }
 
@@ -639,7 +653,8 @@ fun ForecastItem(
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFFA9A9A9),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontFamily = CustomFont
             )
         }
     }
