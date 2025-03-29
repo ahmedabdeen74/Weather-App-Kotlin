@@ -93,8 +93,10 @@ fun FavoritesView(
         }
     ) { paddingValues ->
         Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp)
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .fillMaxSize()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -117,7 +119,7 @@ fun FavoritesView(
                     fontFamily = CustomFont,
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
                     contentDescription = "Favorite Location",
@@ -565,7 +567,7 @@ fun MapSelectionView(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(bottom = 60.dp, top = 20.dp, start = 40.dp, end = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Card(

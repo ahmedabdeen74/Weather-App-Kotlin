@@ -1,5 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <style name="Theme.WeatherApp" parent="android:Theme.Material.Light.NoActionBar" />
+<!-- res/values/themes.xml -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Theme.WeatherApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorPrimaryVariant">@color/primary_color</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/secondary_color</item>
+        <item name="colorSecondaryVariant">@color/secondary_color</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/primary_color</item>
+        <!-- Navigation bar color -->
+        <item name="android:navigationBarColor">@color/primary_color</item>
+        <!-- Ensure the status bar icons are visible (light icons on dark background) -->
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Ensure the navigation bar icons are visible (light icons on dark background) -->
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+    </style>
 </resources>

@@ -103,7 +103,7 @@ fun SettingsView(
             IconButton(
                 onClick = onBackClick,
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(vertical = 32.dp, horizontal = 16.dp)
                     .align(Alignment.TopStart)
             ) {
                 Icon(
@@ -123,14 +123,14 @@ fun SettingsView(
                 modifier = Modifier
                     .size(150.dp)
                     .align(Alignment.TopCenter)
-                    .padding(top = 8.dp)
+                    .padding(top = 32.dp)
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(top = 140.dp, start = 16.dp, end = 16.dp),
+                    .padding(top = 160.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 SettingCategory(

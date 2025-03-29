@@ -4,4 +4,11 @@
         <color name="custom_header_background">#B0B0B0</color>
 
         <color name="custom_text_color">#6C61B5</color>
+        <!-- res/values/colors.xml -->
+
+                <color name="primary_color">#6C61B5</color> <!-- Color(108, 97, 181) -->
+                <color name="secondary_color">#8276C8</color> <!-- A slightly lighter shade -->
+                <color name="white">#FFFFFF</color>
+                <color name="black">#000000</color>
+
 </resources>

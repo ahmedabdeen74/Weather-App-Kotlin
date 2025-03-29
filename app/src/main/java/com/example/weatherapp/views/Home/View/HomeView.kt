@@ -63,7 +63,7 @@ fun HomeView(
     val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
 
 
-    val bottomAppBarHeight = 60.dp
+    val bottomAppBarHeight = 100.dp
     var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

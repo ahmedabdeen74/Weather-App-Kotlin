@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
+import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,7 +13,10 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.ActivityCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -65,6 +69,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Set the status bar and navigation bar colors programmatically
+        setSystemBarColors()
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // HomeViewModel
@@ -97,6 +104,28 @@ class MainActivity : ComponentActivity() {
         setContent {
             navHostController = rememberNavController()
             SetupNavHost()
+        }
+    }
+
+    private fun setSystemBarColors() {
+        val window: Window = window
+        val primaryColor = Color(108, 97, 181)
+
+        // Ensure the system bars are drawn behind the content
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Set the status bar color
+        window.statusBarColor = primaryColor.toArgb()
+
+        // Set the navigation bar color
+        window.navigationBarColor = primaryColor.toArgb()
+
+        // Set the status bar icons to light (white) for better visibility on the dark background
+        WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightStatusBars = false
+
+        // Set the navigation bar icons to light (white) for better visibility on the dark background
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightNavigationBars = false
         }
     }
 
