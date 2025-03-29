@@ -13,6 +13,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -43,17 +45,27 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
         val triggerTime = intent.getLongExtra("triggerTime", 0)
-        Log.d("AlarmDebug", "Trigger time: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(triggerTime)}")
+        Log.d("AlarmDebug", "Trigger time: ${SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(triggerTime)}")
+
+        // Retrieve the weather description and location name from SharedPreferences
+        val sharedPreferences = context.getSharedPreferences("WeatherPrefs", Context.MODE_PRIVATE)
+        val weatherDescription = sharedPreferences.getString("weather_description", "Unknown") ?: "Unknown"
+        val locationName = sharedPreferences.getString("location_name", "Unknown") ?: "Unknown"
 
         createNotificationChannel(context)
         when (alertType) {
-            "NOTIFICATION" -> showNotification(context, intent)
-            "SOUND" -> showNotificationWithSound(context, intent)
+            "NOTIFICATION" -> showNotification(context, intent, weatherDescription, locationName)
+            "ALARM" -> showNotificationWithSound(context, intent, weatherDescription, locationName)
             else -> Log.e("AlarmDebug", "Unknown alert type: $alertType")
         }
     }
 
-    private fun showNotification(context: Context, intent: Intent) {
+    private fun showNotification(
+        context: Context,
+        intent: Intent,
+        weatherDescription: String,
+        locationName: String
+    ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val alertId = intent.getStringExtra("alertId") ?: return
         val triggerTime = intent.getLongExtra("triggerTime", 0)
@@ -69,9 +81,9 @@ class AlarmReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, "weather_channel")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Weather Notification")
-            .setContentText("Scheduled at ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(triggerTime)}")
+            .setSmallIcon(R.drawable.application_icon)
+            .setContentTitle("Weather Update")
+            .setContentText("It's $weatherDescription in $locationName at ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(triggerTime)}")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPendingIntent)
             .setAutoCancel(true)
@@ -82,7 +94,12 @@ class AlarmReceiver : BroadcastReceiver() {
         Log.d("AlarmDebug", "Notification successfully shown for ID: $alertId")
     }
 
-    private fun showNotificationWithSound(context: Context, intent: Intent) {
+    private fun showNotificationWithSound(
+        context: Context,
+        intent: Intent,
+        weatherDescription: String,
+        locationName: String
+    ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val alertId = intent.getStringExtra("alertId") ?: return
         val triggerTime = intent.getLongExtra("triggerTime", 0)
@@ -123,12 +140,12 @@ class AlarmReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, "weather_channel")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Weather Alarm")
-            .setContentText("Alarm triggered at ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(triggerTime)}")
+            .setSmallIcon(R.drawable.application_icon)
+            .setContentTitle("Weather Update")
+            .setContentText("It's $weatherDescription in $locationName at ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(triggerTime)}")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPendingIntent)
-            .addAction(R.drawable.alarm, "Stop Sound", stopPendingIntent)
+            .addAction(R.drawable.alarm, "Stop Alarm", stopPendingIntent)
             .setAutoCancel(true)
             .setOngoing(true)
             .build()

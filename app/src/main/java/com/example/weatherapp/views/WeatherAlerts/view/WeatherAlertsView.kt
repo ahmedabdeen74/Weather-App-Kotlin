@@ -322,7 +322,7 @@ fun AlertItem(
                                     // Alert is active, we display Snackbar with Undo option
                                     val remainingCount = getDeletedAlertsCount()
                                     val message = if (remainingCount > 0) {
-                                        "Alert deleted successfully ($remainingCount remaining)"
+                                        "Alert deleted successfully"
                                     } else {
                                         "Alert deleted successfully"
                                     }

@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
 
         //  HomeViewModel
         val repository = WeatherRepositoryImpl.getInstance(RemoteDataSourceImpl())
-        val factory = HomeViewModelFactory(repository)
+        val factory = HomeViewModelFactory(repository,this)
         homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
 
         //  FavoritesViewModel

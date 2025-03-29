@@ -1,5 +1,7 @@
 package com.example.weatherapp.views.Home.ViewModel
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.location.Geocoder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,7 +16,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
+class HomeViewModel(private val repository: WeatherRepository,private val context: Context) : ViewModel() {
 
     private val _weatherState = MutableStateFlow<WeatherState>(WeatherState.Loading)
     val weatherState: StateFlow<WeatherState> = _weatherState.asStateFlow()
@@ -35,6 +37,10 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
     private val _locationSource = MutableStateFlow(LocationSource.GPS)
     val locationSource: StateFlow<LocationSource> = _locationSource.asStateFlow()
 
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences("WeatherPrefs", Context.MODE_PRIVATE)
+
+
     fun fetchWeatherData(lat: Double, lon: Double, geocoder: Geocoder) {
         viewModelScope.launch {
             try {
@@ -52,6 +58,12 @@ class HomeViewModel(private val repository: WeatherRepository) : ViewModel() {
                 if (response.isSuccessful) {
                     response.body()?.let {
                         _weatherState.value = WeatherState.Success(it)
+                        // Save the weather description to SharedPreferences
+                        val weatherDescription = it.weather.firstOrNull()?.description?.capitalize() ?: "Unknown"
+                        sharedPreferences.edit()
+                            .putString("weather_description", weatherDescription)
+                            .putString("location_name", _locationName.value)
+                            .apply()
                     } ?: run {
                         _weatherState.value = WeatherState.Error("Empty response")
                     }

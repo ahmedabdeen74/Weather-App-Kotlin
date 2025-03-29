@@ -605,11 +605,13 @@ fun ForecastItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val dayTextColor = if (displayDay == "Today") Color(0xFFFFD700) else Color.White
+
             Text(
-                text = displayDay, // Use the computed displayDay
+                text = displayDay,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color =Color.White, 
+                color = dayTextColor,
                 fontFamily = CustomFont
             )
             Text(
