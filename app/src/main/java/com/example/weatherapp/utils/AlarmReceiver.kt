@@ -118,7 +118,7 @@ class AlarmReceiver : BroadcastReceiver() {
         // Setting a PendingIntent to open the app with the sound off
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("stopSound", true) // Pass a signal to stop the sound
+            putExtra("stopAlarm", true) // Pass a signal to stop the sound
         }
         val openPendingIntent = PendingIntent.getActivity(
             context,

@@ -40,6 +40,7 @@ import com.example.weatherapp.views.Settings.SettingsView
 import com.example.weatherapp.views.WeatherAlerts.view.WeatherAlertsView
 import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModel
 import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModelFactory
+import com.example.weatherapp.views.splash.SplashView
 import com.google.android.gms.location.*
 import java.util.Locale
 
@@ -66,12 +67,12 @@ class MainActivity : ComponentActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        //  HomeViewModel
+        // HomeViewModel
         val repository = WeatherRepositoryImpl.getInstance(RemoteDataSourceImpl())
-        val factory = HomeViewModelFactory(repository,this)
+        val factory = HomeViewModelFactory(repository, this)
         homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
 
-        //  FavoritesViewModel
+        // FavoritesViewModel
         val favoriteLocationsDao = FavoriteLocationsDatabase.getInstance(this).favoriteLocationsDao()
         val localDataSource = FavoriteLocationsLocalDataSource(favoriteLocationsDao)
         val favoritesRepository = FavoriteLocationsRepositoryImpl.getInstance(localDataSource)
@@ -182,9 +183,12 @@ class MainActivity : ComponentActivity() {
     fun SetupNavHost() {
         NavHost(
             navController = navHostController,
-            startDestination = ScreenRoute.HomeViewRoute.route,
+            startDestination = ScreenRoute.SplashViewRoute.route,
             modifier = Modifier.fillMaxSize()
         ) {
+            composable(ScreenRoute.SplashViewRoute.route) {
+                SplashView(navController = navHostController)
+            }
             composable(ScreenRoute.HomeViewRoute.route) {
                 HomeView(
                     viewModel = homeViewModel,
