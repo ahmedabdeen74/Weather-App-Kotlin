@@ -10,11 +10,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
@@ -22,10 +29,18 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.data.local.FavoriteLocationsDatabase
 import com.example.weatherapp.data.local.FavoriteLocationsLocalDataSource
 import com.example.weatherapp.data.local.WeatherAlertsDatabase
 import com.example.weatherapp.data.local.WeatherAlertsLocalDataSourceImpl
+import com.example.weatherapp.data.local.WeatherDatabase
+import com.example.weatherapp.data.local.entity.LocalDataSource
+import com.example.weatherapp.data.local.entity.LocalDataSourceImpl
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
 import com.example.weatherapp.repo.WeatherAlertsRepositoryImpl
@@ -75,9 +90,13 @@ class MainActivity : ComponentActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // HomeViewModel
-        val repository = WeatherRepositoryImpl.getInstance(RemoteDataSourceImpl())
+        val weatherDatabase = WeatherDatabase.getInstance(this)
+        val localDataSourceHome: LocalDataSource = LocalDataSourceImpl(weatherDatabase.weatherDao())
+        val remoteDataSource = RemoteDataSourceImpl()
+        val repository = WeatherRepositoryImpl.getInstance(remoteDataSource, localDataSourceHome)
         val factory = HomeViewModelFactory(repository, this)
         homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
+
 
         // FavoritesViewModel
         val favoriteLocationsDao = FavoriteLocationsDatabase.getInstance(this).favoriteLocationsDao()
@@ -228,6 +247,7 @@ class MainActivity : ComponentActivity() {
                         navHostController.navigate(ScreenRoute.HomeViewRoute.route) {
                             popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
                         }
+
                     },
                     onFavoriteClick = {
                         navHostController.navigate(ScreenRoute.FavoritesViewRoute.route)

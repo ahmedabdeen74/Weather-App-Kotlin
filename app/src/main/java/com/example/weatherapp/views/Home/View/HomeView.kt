@@ -27,6 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.models.WeatherResponse
 import com.example.weatherapp.ui.theme.CustomFont
@@ -61,6 +66,8 @@ fun HomeView(
     val locationName by viewModel.locationName.collectAsStateWithLifecycle()
     val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
     val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
+    val isOnline = viewModel.isOnline.collectAsState().value
+    val lastUpdated = viewModel.lastUpdated.collectAsState().value
 
 
     val bottomAppBarHeight = 100.dp
@@ -136,6 +143,10 @@ fun HomeView(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+                // Offline Banner
+                if (!isOnline) {
+                    OfflineBanner(lastUpdated = lastUpdated)
+                }
 
                 when (weatherState) {
                     is WeatherState.Loading -> {
@@ -668,6 +679,50 @@ fun String.capitalize(): String {
         word.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault())
             else it.toString()
+        }
+    }
+}
+
+
+@Composable
+fun OfflineBanner(lastUpdated: Long?) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(46, 13, 99).copy(alpha = 0.8f))
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.wifi_off),
+                    contentDescription = "No Internet",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "No Internet Connection",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            if (lastUpdated != null && lastUpdated > 0) {
+                val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                val formattedTime = dateFormat.format(lastUpdated)
+                Text(
+                    text = "Last updated: $formattedTime",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 24.dp)
+                )
+            }
         }
     }
 }
