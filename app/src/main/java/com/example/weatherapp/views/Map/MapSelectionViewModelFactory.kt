@@ -4,7 +4,7 @@ package com.example.weatherapp.views.Map
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
+import com.example.weatherapp.repo.favourite.FavoriteLocationsRepositoryImpl
 
 class MapSelectionViewModelFactory(
     private val repository: FavoriteLocationsRepositoryImpl,

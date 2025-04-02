@@ -3,7 +3,7 @@ package com.example.weatherapp.views.WeatherAlerts.viewModel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.weatherapp.repo.WeatherAlertsRepository
+import com.example.weatherapp.repo.alerts.WeatherAlertsRepository
 
 class WeatherAlertsViewModelFactory(
     private val context: Context,

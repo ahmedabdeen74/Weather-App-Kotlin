@@ -52,11 +52,10 @@ enum class SheetState {
     COLLAPSED, EXPANDED
 }
 
-// دالة لتحويل الأرقام والرموز إلى النمط المحلي بناءً على اللغة
+
 fun String.toLocalizedFormat(language: String): String {
     var result = this
 
-    // تحويل الأرقام أولاً
     if (language == "ar") {
         val arabicDigits = "٠١٢٣٤٥٦٧٨٩"
         val westernDigits = "0123456789"
@@ -65,19 +64,16 @@ fun String.toLocalizedFormat(language: String): String {
         }
     }
 
-    // تحويل الوحدات والرموز بناءً على اللغة
     if (language == "ar") {
-        // تحويل النسبة المئوية
+
         result = result.replace("%", "٪")
-        // تحويل وحدات القياس
         result = result.replace("°C", "°س")
         result = result.replace("°K", "°ك")
         result = result.replace("°F", "°ف")
         result = result.replace("m/s", "م/ث")
         result = result.replace("mph", "ميل/س")
-        result = result.replace(" m", " م") // للرؤية
-        result = result.replace("mb", "ملي بار") // للضغط
-        // تحويل H و L
+        result = result.replace(" m", " م")
+        result = result.replace("mb", "ملي بار")
         result = result.replace("H:", "ع :")
         result = result.replace("L:", "ص :")
     }

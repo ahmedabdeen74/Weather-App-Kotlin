@@ -6,11 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.AlertType
 import com.example.weatherapp.models.WeatherAlert
-import com.example.weatherapp.repo.WeatherAlertsRepository
+import com.example.weatherapp.repo.alerts.WeatherAlertsRepository
 import com.example.weatherapp.utils.AlarmReceiver
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow

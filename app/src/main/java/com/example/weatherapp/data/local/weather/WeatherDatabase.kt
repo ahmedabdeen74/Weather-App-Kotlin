@@ -1,4 +1,4 @@
-package com.example.weatherapp.data.local
+package com.example.weatherapp.data.local.weather
 
 import android.content.Context
 import androidx.room.Database
@@ -7,9 +7,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.weatherapp.data.local.dao.WeatherDao
-import com.example.weatherapp.data.local.entity.ForecastEntity
-import com.example.weatherapp.data.local.entity.WeatherEntity
+import com.example.weatherapp.utils.Converters
+import com.example.weatherapp.models.ForecastEntity
+import com.example.weatherapp.models.WeatherEntity
 
 @Database(entities = [WeatherEntity::class, ForecastEntity::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)

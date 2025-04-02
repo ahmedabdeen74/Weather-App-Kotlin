@@ -97,5 +97,48 @@ dependencies {
 
     implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
 
+
+
+    // إصدارات الـ Dependencies (يتم تعريفها في build.gradle على مستوى المشروع أو هنا مباشرة)
+    val junitVersion = "4.13.2"
+    val hamcrestVersion = "2.2"
+    val robolectricVersion = "4.13" // أحدث إصدار متوافق حتى أبريل 2025
+    val androidXTestCoreVersion = "1.6.1" // أحدث إصدار لـ androidx.test:core
+    val androidXTestExtKotlinRunnerVersion = "1.2.0" // أحدث إصدار لـ androidx.test.ext:junit-ktx
+    val espressoVersion = "3.6.1" // أحدث إصدار لـ Espresso
+    val timberVersion = "5.0.1" // إصدار Timber (ثابت ولا يحتاج تحديث عادةً)
+    val archTestingVersion = "2.2.0" // أحدث إصدار لـ androidx.arch.core:core-testing
+    val coroutinesVersion = "1.8.1" // أحدث إصدار لـ Kotlin Coroutines حتى أبريل 2025
+    val mockkVersion = "1.13.12" // أحدث إصدار مستقر لـ MockK (تم تعديله لتجنب مشاكل التوافق)
+
+// Dependencies for local unit tests (اختبارات JVM)
+    testImplementation ("junit:junit:$junitVersion")
+    testImplementation ("org.hamcrest:hamcrest:$hamcrestVersion")
+    testImplementation ("org.hamcrest:hamcrest-library:$hamcrestVersion")
+    testImplementation ("androidx.arch.core:core-testing:$archTestingVersion")
+    testImplementation ("org.robolectric:robolectric:$robolectricVersion")
+
+// AndroidX Test - JVM testing (اختبارات JVM باستخدام AndroidX)
+    testImplementation ("androidx.test:core-ktx:$androidXTestCoreVersion")
+    testImplementation ("androidx.test.ext:junit-ktx:$androidXTestExtKotlinRunnerVersion")
+
+// AndroidX Test - Instrumented testing (اختبارات على الجهاز/المحاكي)
+    androidTestImplementation ("androidx.test:core:$androidXTestCoreVersion")
+    androidTestImplementation ("androidx.test.ext:junit-ktx:$androidXTestExtKotlinRunnerVersion")
+    androidTestImplementation ("androidx.test.espresso:espresso-core:$espressoVersion")
+
+// Timber (للتسجيل/Logging)
+    implementation ("com.jakewharton.timber:timber:$timberVersion")
+
+// Kotlin Coroutines
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
+    testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+    androidTestImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+
+// MockK (للمحاكاة في الاختبارات)
+    testImplementation ("io.mockk:mockk:$mockkVersion")
+    testImplementation ("io.mockk:mockk-agent:$mockkVersion")
+    androidTestImplementation ("io.mockk:mockk-android:$mockkVersion")
+
 }
 

@@ -1,8 +1,8 @@
-package com.example.weatherapp.repo
+package com.example.weatherapp.repo.weather
 
-import com.example.weatherapp.data.local.entity.ForecastEntity
-import com.example.weatherapp.data.local.entity.LocalDataSource
-import com.example.weatherapp.data.local.entity.WeatherEntity
+import com.example.weatherapp.models.ForecastEntity
+import com.example.weatherapp.data.local.weather.LocalDataSource
+import com.example.weatherapp.models.WeatherEntity
 import com.example.weatherapp.data.remote.RemoteDataSource
 import com.example.weatherapp.models.ForecastResponse
 import com.example.weatherapp.models.WeatherResponse

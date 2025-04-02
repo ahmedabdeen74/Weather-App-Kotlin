@@ -1,5 +1,5 @@
 
-package com.example.weatherapp.repo
+package com.example.weatherapp.repo.favourite
 
 
 import com.example.weatherapp.models.FavoriteLocation
@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 
 
-import com.example.weatherapp.data.local.LocalDataSource
+import com.example.weatherapp.data.local.favourite.LocalDataSource
 
 
 class FavoriteLocationsRepositoryImpl private constructor(

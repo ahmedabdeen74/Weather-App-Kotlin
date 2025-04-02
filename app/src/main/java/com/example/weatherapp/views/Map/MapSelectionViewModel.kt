@@ -5,8 +5,7 @@ import android.location.Geocoder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.FavoriteLocation
-import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
-import com.google.android.gms.maps.model.LatLng
+import com.example.weatherapp.repo.favourite.FavoriteLocationsRepositoryImpl
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Locale

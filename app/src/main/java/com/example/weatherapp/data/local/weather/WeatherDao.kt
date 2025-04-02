@@ -1,11 +1,11 @@
-package com.example.weatherapp.data.local.dao
+package com.example.weatherapp.data.local.weather
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.weatherapp.data.local.entity.ForecastEntity
-import com.example.weatherapp.data.local.entity.WeatherEntity
+import com.example.weatherapp.models.ForecastEntity
+import com.example.weatherapp.models.WeatherEntity
 
 @Dao
 interface WeatherDao {

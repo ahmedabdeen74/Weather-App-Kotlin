@@ -1,5 +1,5 @@
 
-package com.example.weatherapp.data.local
+package com.example.weatherapp.data.local.favourite
 
 import com.example.weatherapp.models.FavoriteLocation
 import kotlinx.coroutines.flow.Flow

@@ -1,9 +1,7 @@
-package com.example.weatherapp.data.local.entity
+package com.example.weatherapp.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.weatherapp.models.ForecastResponse
-import com.example.weatherapp.models.WeatherResponse
 
 @Entity(tableName = "weather")
 data class WeatherEntity(

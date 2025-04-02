@@ -3,7 +3,7 @@ package com.example.weatherapp.views.Favourite.ViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.FavoriteLocation
-import com.example.weatherapp.repo.FavoriteLocationsRepositoryImpl
+import com.example.weatherapp.repo.favourite.FavoriteLocationsRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch

@@ -5,8 +5,7 @@ import android.content.SharedPreferences
 import android.location.Geocoder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.weatherapp.models.ForecastItem
-import com.example.weatherapp.repo.WeatherRepository
+import com.example.weatherapp.repo.weather.WeatherRepository
 import com.example.weatherapp.utils.NetworkUtils
 import com.example.weatherapp.views.Settings.TemperatureUnit
 import com.example.weatherapp.views.Settings.WindSpeedUnit

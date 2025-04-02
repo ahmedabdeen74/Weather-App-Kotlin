@@ -1,8 +1,8 @@
-package com.example.weatherapp.repo
+package com.example.weatherapp.repo.alerts
 
 
 
-import com.example.weatherapp.data.local.WeatherAlertsLocalDataSource
+import com.example.weatherapp.data.local.alerts.WeatherAlertsLocalDataSource
 import com.example.weatherapp.models.WeatherAlert
 import kotlinx.coroutines.flow.Flow
 

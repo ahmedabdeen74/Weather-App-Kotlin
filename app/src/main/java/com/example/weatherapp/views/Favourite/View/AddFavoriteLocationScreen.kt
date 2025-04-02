@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.weatherapp.views.Map.MapSelectionViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -212,10 +213,13 @@ fun FavoritesView(
                                 homeViewModel = homeViewModel,
                                 navController = navController,
                                 onItemClick = {
-                                    val geocoder = android.location.Geocoder(context)
-                                    homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
-                                    navController.navigate(ScreenRoute.HomeViewRoute.route) {
-                                        popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
+                                    coroutineScope.launch {
+                                        val geocoder = android.location.Geocoder(context)
+                                        homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                                        delay(1000)
+                                        navController.navigate(ScreenRoute.HomeViewRoute.route) {
+                                            popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
+                                        }
                                     }
                                 },
                                 onDeleteClick = { viewModel.removeFavoriteLocation(it) },

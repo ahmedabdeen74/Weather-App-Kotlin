@@ -1,8 +1,8 @@
-package com.example.weatherapp.data.local.entity
+package com.example.weatherapp.data.local.weather
 
 
-import com.example.weatherapp.data.local.entity.ForecastEntity
-import com.example.weatherapp.data.local.entity.WeatherEntity
+import com.example.weatherapp.models.ForecastEntity
+import com.example.weatherapp.models.WeatherEntity
 
 interface LocalDataSource {
     suspend fun saveWeather(weather: WeatherEntity)

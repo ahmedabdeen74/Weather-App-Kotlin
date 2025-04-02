@@ -1,4 +1,4 @@
-package com.example.weatherapp.data.local
+package com.example.weatherapp.utils
 
 import androidx.room.TypeConverter
 import com.example.weatherapp.models.ForecastItem

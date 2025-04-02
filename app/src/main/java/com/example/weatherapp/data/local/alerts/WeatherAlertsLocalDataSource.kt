@@ -1,4 +1,4 @@
-package com.example.weatherapp.data.local
+package com.example.weatherapp.data.local.alerts
 
 import com.example.weatherapp.models.WeatherAlert
 import kotlinx.coroutines.flow.Flow
