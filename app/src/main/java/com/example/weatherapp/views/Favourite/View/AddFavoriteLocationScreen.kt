@@ -708,12 +708,31 @@ fun MapSelectionView(
                     onMapClick = { clickedLocation ->
                         selectedLocation = clickedLocation
                         isSaved = false
-                        locationName = if (language == "ar") {
-                            "خط العرض وطول العرض (${clickedLocation.latitude}, ${clickedLocation.longitude})"
-                        } else {
-                            "lat & lon (${clickedLocation.latitude}, ${clickedLocation.longitude})"
+                        // Use Geocoder to retrieve the name of the coordinate
+                        coroutineScope.launch {
+                            val geocoder = android.location.Geocoder(context, if (language == "ar") Locale("ar") else Locale.getDefault())
+                            val addresses = geocoder.getFromLocation(clickedLocation.latitude, clickedLocation.longitude, 1)
+                            val address = addresses?.firstOrNull()
+                            locationName = if (address != null) {
+                                val cityName = address.locality ?: address.adminArea ?: "Unknown"
+                                if (language == "ar") {
+                                    val latStr = clickedLocation.latitude.toString().toLocalizedFormat(language)
+                                    val lonStr = clickedLocation.longitude.toString().toLocalizedFormat(language)
+                                    "$cityName - خط العرض وطول العرض ($latStr, $lonStr)"
+                                } else {
+                                    "$cityName - lat & lon (${clickedLocation.latitude}, ${clickedLocation.longitude})"
+                                }
+                            } else {
+                                if (language == "ar") {
+                                    val latStr = clickedLocation.latitude.toString().toLocalizedFormat(language)
+                                    val lonStr = clickedLocation.longitude.toString().toLocalizedFormat(language)
+                                    "خط العرض وطول العرض ($latStr, $lonStr)"
+                                } else {
+                                    "lat & lon (${clickedLocation.latitude}, ${clickedLocation.longitude})"
+                                }
+                            }
                         }
-                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 4f)
+                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 15f)
                     },
                     onCameraMove = { position -> cameraPosition = position }
                 )
@@ -745,12 +764,10 @@ fun MapSelectionView(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Search,
-                            // Set keyboard language based on default language
-                            autoCorrect = language == "ar" // Activate auto-correct for Arabic
+                            autoCorrect = language == "ar"
                         ),
                         textStyle = LocalTextStyle.current.copy(
                             fontFamily = CustomFont,
-                            // Set text direction based on language
                             textDirection = if (language == "ar") TextDirection.Rtl else TextDirection.Ltr
                         )
                     )
@@ -777,7 +794,9 @@ fun MapSelectionView(
                                                     val latLng = LatLng(it.latitude, it.longitude)
                                                     selectedLocation = latLng
                                                     locationName = if (language == "ar") {
-                                                        "خط العرض وطول العرض (${latLng.latitude}, ${latLng.longitude})"
+                                                        val latStr = latLng.latitude.toString().toLocalizedFormat(language)
+                                                        val lonStr = latLng.longitude.toString().toLocalizedFormat(language)
+                                                        "خط العرض وطول العرض ($latStr, $lonStr)"
                                                     } else {
                                                         "lat & lon (${latLng.latitude}, ${latLng.longitude})"
                                                     }
@@ -845,4 +864,17 @@ fun GoogleMapWithMarker(
             )
         }
     }
+}
+
+// Function to convert numbers to local format based on language
+fun String.toLocalizedFormat(language: String): String {
+    var result = this
+    if (language == "ar") {
+        val arabicDigits = "٠١٢٣٤٥٦٧٨٩"
+        val westernDigits = "0123456789"
+        for (i in westernDigits.indices) {
+            result = result.replace(westernDigits[i], arabicDigits[i])
+        }
+    }
+    return result
 }
