@@ -24,13 +24,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.models.WeatherResponse
@@ -41,7 +43,6 @@ import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.WeatherState
 import com.example.weatherapp.views.Settings.TemperatureUnit
 import com.example.weatherapp.views.Settings.WindSpeedUnit
-import getWeatherIconResource
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -51,6 +52,39 @@ enum class SheetState {
     COLLAPSED, EXPANDED
 }
 
+// دالة لتحويل الأرقام والرموز إلى النمط المحلي بناءً على اللغة
+fun String.toLocalizedFormat(language: String): String {
+    var result = this
+
+    // تحويل الأرقام أولاً
+    if (language == "ar") {
+        val arabicDigits = "٠١٢٣٤٥٦٧٨٩"
+        val westernDigits = "0123456789"
+        for (i in westernDigits.indices) {
+            result = result.replace(westernDigits[i], arabicDigits[i])
+        }
+    }
+
+    // تحويل الوحدات والرموز بناءً على اللغة
+    if (language == "ar") {
+        // تحويل النسبة المئوية
+        result = result.replace("%", "٪")
+        // تحويل وحدات القياس
+        result = result.replace("°C", "°س")
+        result = result.replace("°K", "°ك")
+        result = result.replace("°F", "°ف")
+        result = result.replace("m/s", "م/ث")
+        result = result.replace("mph", "ميل/س")
+        result = result.replace(" m", " م") // للرؤية
+        result = result.replace("mb", "ملي بار") // للضغط
+        // تحويل H و L
+        result = result.replace("H:", "ع :")
+        result = result.replace("L:", "ص :")
+    }
+
+    return result
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeView(
@@ -58,228 +92,228 @@ fun HomeView(
     onHomeClick: () -> Unit,
     onSettingClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    onAlertsClick:() -> Unit,
+    onAlertsClick: () -> Unit,
 ) {
-    // Collect the state flows
-    val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
-    val forecastState by viewModel.forecastState.collectAsStateWithLifecycle()
-    val locationName by viewModel.locationName.collectAsStateWithLifecycle()
-    val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
-    val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
-    val isOnline = viewModel.isOnline.collectAsState().value
-    val lastUpdated = viewModel.lastUpdated.collectAsState().value
+    val language by viewModel.language.collectAsStateWithLifecycle()
+    val layoutDirection = if (language == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
 
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        val weatherState by viewModel.weatherState.collectAsStateWithLifecycle()
+        val forecastState by viewModel.forecastState.collectAsStateWithLifecycle()
+        val locationName by viewModel.locationName.collectAsStateWithLifecycle()
+        val temperatureUnit by viewModel.temperatureUnit.collectAsStateWithLifecycle()
+        val windSpeedUnit by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
+        val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+        val lastUpdated by viewModel.lastUpdated.collectAsStateWithLifecycle()
 
-    val bottomAppBarHeight = 100.dp
-    var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
+        val bottomAppBarHeight = 100.dp
+        var sheetState by remember { mutableStateOf(SheetState.COLLAPSED) }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val screenHeight = maxHeight
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val screenHeight = maxHeight
 
-        Scaffold(
-            bottomBar = {
-                BottomAppBar(
+            Scaffold(
+                bottomBar = {
+                    BottomAppBar(
+                        modifier = Modifier
+                            .height(bottomAppBarHeight)
+                            .clip(RoundedCornerShape(24.dp)),
+                        containerColor = Color(46, 13, 99).copy(alpha = 0.7f)
+                    ) {
+                        IconButton(
+                            onClick = { onHomeClick() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(30.dp),
+                                painter = painterResource(id = R.drawable.home),
+                                contentDescription = if (language == "ar") "الرئيسية" else "Home",
+                                tint = Color.White
+                            )
+                        }
+                        IconButton(
+                            onClick = { onFavoriteClick() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(30.dp),
+                                painter = painterResource(id = R.drawable.map),
+                                contentDescription = if (language == "ar") "المفضلة" else "Favorite",
+                                tint = Color.White
+                            )
+                        }
+                        IconButton(
+                            onClick = { onAlertsClick() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(30.dp),
+                                painter = painterResource(id = R.drawable.alarm),
+                                contentDescription = if (language == "ar") "التنبيهات" else "Alarm",
+                                tint = Color.White
+                            )
+                        }
+                        IconButton(
+                            onClick = { onSettingClick() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(30.dp),
+                                painter = painterResource(id = R.drawable.settings),
+                                contentDescription = if (language == "ar") "الإعدادات" else "Settings",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                }
+            ) { paddingValues ->
+                Box(
                     modifier = Modifier
-                        .height(bottomAppBarHeight)
-                        .clip(RoundedCornerShape(24.dp)),
-                    containerColor = Color(46, 13, 99).copy(alpha = 0.7f)
+                        .fillMaxSize()
+                        .background(Color(0xFF1B0D67).copy(alpha = 0.7f))
+                        .padding(paddingValues)
                 ) {
-                    IconButton(
-                        onClick = { onHomeClick() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.home),
-                            contentDescription = "Home",
-                            tint = Color.White
-                        )
+                    Image(
+                        painter = painterResource(id = R.drawable.weatherbackground),
+                        contentDescription = "Background",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    if (!isOnline) {
+                        OfflineBanner(lastUpdated = lastUpdated, language = language)
                     }
-                    IconButton(
-                        onClick = { onFavoriteClick() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.map),
-                            contentDescription = "Favorite",
-                            tint = Color.White
-                        )
-                    }
-                    IconButton(
-                        onClick = { onAlertsClick() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.alarm),
-                            contentDescription = "Alarm",
-                            tint = Color.White
-                        )
-                    }
-                    IconButton(
-                        onClick = { onSettingClick() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(30.dp),
-                            painter = painterResource(id = R.drawable.settings),
-                            contentDescription = "Settings",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF1B0D67).copy(alpha = 0.7f))
-                    .padding(paddingValues)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.weatherbackground),
-                    contentDescription = "Background",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                // Offline Banner
-                if (!isOnline) {
-                    OfflineBanner(lastUpdated = lastUpdated)
-                }
 
-                when (weatherState) {
-                    is WeatherState.Loading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color(0xFF00BFFF))
+                    when (weatherState) {
+                        is WeatherState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF00BFFF))
+                            }
                         }
-                    }
-                    is WeatherState.Error -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Error: ${(weatherState as WeatherState.Error).message}",
-                                color = Color.White
-                            )
-                        }
-                    }
-                    is WeatherState.Success -> {
-                        // Success state, proceed with displaying weather data
-                        val weatherData = (weatherState as WeatherState.Success).data
-
-                        // Get temperature symbol
-                        val tempSymbol = when(temperatureUnit) {
-                            TemperatureUnit.CELSIUS -> "°C"
-                            TemperatureUnit.KELVIN -> "°K"
-                            TemperatureUnit.FAHRENHEIT -> "°F"
-                        }
-
-                        // Convert temperatures
-                        val mainTemp = viewModel.convertTemperature(weatherData.main.temp)
-                        val minTemp = viewModel.convertTemperature(weatherData.main.temp_min)
-                        val maxTemp = viewModel.convertTemperature(weatherData.main.temp_max)
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = 65.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = locationName,
-                                fontSize = 36.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = CustomFont,
-                                color = Color.White
-                            )
-
-                            Row(
-                                verticalAlignment = Alignment.Bottom
+                        is WeatherState.Error -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "${mainTemp.roundToInt()}",
-                                    fontSize = 96.sp,
-                                    fontWeight = FontWeight.Thin,
+                                    text = if (language == "ar") "خطأ: ${(weatherState as WeatherState.Error).message}" else "Error: ${(weatherState as WeatherState.Error).message}",
                                     color = Color.White
-                                )
-                                Text(
-                                    text = tempSymbol,
-                                    fontSize = 44.sp,
-                                    fontWeight = FontWeight.Thin,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(bottom = 48.dp)
-                                )
-                            }
-
-                            Text(
-                                text = weatherData.weather.firstOrNull()?.description?.capitalize() ?: "Unknown",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = CustomFont,
-                                color = Color(0xFFA9A9A9)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row {
-                                Text(
-                                    text = "H:${maxTemp.roundToInt()}",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    fontFamily = CustomFont,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = tempSymbol,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
-                                )
-                                Text(
-                                    text = "  L:${minTemp.roundToInt()}",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    fontFamily = CustomFont,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = tempSymbol,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                                 )
                             }
                         }
+                        is WeatherState.Success -> {
+                            val weatherData = (weatherState as WeatherState.Success).data
 
-                        Spacer(
-                            modifier = Modifier.height(24.dp)
-                        )
+                            val tempSymbol = when (temperatureUnit) {
+                                TemperatureUnit.CELSIUS -> "°C"
+                                TemperatureUnit.KELVIN -> "°K"
+                                TemperatureUnit.FAHRENHEIT -> "°F"
+                            }
 
-                        Image(
-                            painter = painterResource(id = R.drawable.house),
-                            contentDescription = "Overlay",
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .size(350.dp)
-                        )
+                            val mainTemp = viewModel.convertTemperature(weatherData.main.temp)
+                            val minTemp = viewModel.convertTemperature(weatherData.main.temp_min)
+                            val maxTemp = viewModel.convertTemperature(weatherData.main.temp_max)
 
-                        WeatherBottomSheet(
-                            sheetState = sheetState,
-                            onSheetStateChange = { newState -> sheetState = newState },
-                            weatherData = weatherData,
-                            forecastState = forecastState,
-                            viewModel = viewModel,
-                            temperatureUnit = temperatureUnit,
-                            windSpeedUnit = windSpeedUnit,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = 65.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = locationName,
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = CustomFont,
+                                    color = Color.White
+                                )
+
+                                Row(
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    Text(
+                                        text = "${mainTemp.roundToInt()}".toLocalizedFormat(language),
+                                        fontSize = 96.sp,
+                                        fontWeight = FontWeight.Thin,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = tempSymbol.toLocalizedFormat(language),
+                                        fontSize = 44.sp,
+                                        fontWeight = FontWeight.Thin,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(bottom = 48.dp)
+                                    )
+                                }
+
+                                Text(
+                                    text = weatherData.weather.firstOrNull()?.description?.capitalize() ?: if (language == "ar") "غير معروف" else "Unknown",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = CustomFont,
+                                    color = Color(0xFFA9A9A9)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row {
+                                    Text(
+                                        text = "H:${maxTemp.roundToInt()}".toLocalizedFormat(language),
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = CustomFont,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = tempSymbol.toLocalizedFormat(language),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                                    )
+                                    Text(
+                                        text = "  L:${minTemp.roundToInt()}".toLocalizedFormat(language),
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = CustomFont,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = tempSymbol.toLocalizedFormat(language),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(
+                                modifier = Modifier.height(24.dp)
+                            )
+
+                            Image(
+                                painter = painterResource(id = R.drawable.house),
+                                contentDescription = "Overlay",
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .size(350.dp)
+                            )
+
+                            WeatherBottomSheet(
+                                sheetState = sheetState,
+                                onSheetStateChange = { newState -> sheetState = newState },
+                                weatherData = weatherData,
+                                forecastState = forecastState,
+                                viewModel = viewModel,
+                                temperatureUnit = temperatureUnit,
+                                windSpeedUnit = windSpeedUnit,
+                                language = language,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
                     }
                 }
             }
@@ -296,19 +330,17 @@ fun WeatherBottomSheet(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel,
     temperatureUnit: TemperatureUnit,
-    windSpeedUnit: WindSpeedUnit
-
+    windSpeedUnit: WindSpeedUnit,
+    language: String
 ) {
     val windSpeedUnitState by viewModel.windSpeedUnit.collectAsStateWithLifecycle()
     val windSpeedValue = viewModel.convertWindSpeed(weatherData.wind.speed)
-    val windSpeedUnitText = when(windSpeedUnitState) {
+    val windSpeedUnitText = when (windSpeedUnitState) {
         WindSpeedUnit.METER_PER_SEC -> "m/s"
         WindSpeedUnit.MILE_PER_HOUR -> "mph"
     }
 
-
-
-    val tempSymbol = when(temperatureUnit) {
+    val tempSymbol = when (temperatureUnit) {
         TemperatureUnit.CELSIUS -> "°C"
         TemperatureUnit.KELVIN -> "°K"
         TemperatureUnit.FAHRENHEIT -> "°F"
@@ -359,7 +391,7 @@ fun WeatherBottomSheet(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Hourly Forecast",
+                    text = if (language == "ar") "توقعات كل ساعة" else "Hourly Forecast",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = CustomFont,
@@ -382,7 +414,7 @@ fun WeatherBottomSheet(
                     }
                     is ForecastState.Error -> {
                         Text(
-                            text = "Couldn't load forecast",
+                            text = if (language == "ar") "تعذر تحميل التوقعات" else "Couldn't load forecast",
                             fontSize = 16.sp,
                             color = Color.White.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center,
@@ -402,23 +434,23 @@ fun WeatherBottomSheet(
                                     forecastDisplay = item,
                                     isSelected = index == selectedHourlyIndex,
                                     onClick = { selectedHourlyIndex = index },
-                                            viewModel = viewModel,
-                                    temperatureUnit = temperatureUnit
-
+                                    viewModel = viewModel,
+                                    temperatureUnit = temperatureUnit,
+                                    language = language
                                 )
                             }
                         }
                     }
                 }
             }
-        } else if (sheetState == SheetState.EXPANDED)
+        } else if (sheetState == SheetState.EXPANDED) {
             IconButton(
                 onClick = { onSheetStateChange(SheetState.COLLAPSED) },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.cancel),
-                    contentDescription = "Close",
+                    contentDescription = if (language == "ar") "إغلاق" else "Close",
                     tint = Color.White
                 )
             }
@@ -431,18 +463,17 @@ fun WeatherBottomSheet(
             ) {
                 item {
                     Text(
-                        text = "Weather Timeline",
+                        text = if (language == "ar") "الجدول الزمني للطقس" else "Weather Timeline",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = CustomFont,
-                        color =  Color.White,
+                        color = Color.White,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp),
                         textAlign = TextAlign.Start
                     )
 
-                    // Display forecast data
                     when (forecastState) {
                         is ForecastState.Loading -> {
                             Box(
@@ -454,7 +485,7 @@ fun WeatherBottomSheet(
                         }
                         is ForecastState.Error -> {
                             Text(
-                                text = "Couldn't load forecast",
+                                text = if (language == "ar") "تعذر تحميل التوقعات" else "Couldn't load forecast",
                                 fontSize = 16.sp,
                                 color = Color.White.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center,
@@ -474,7 +505,8 @@ fun WeatherBottomSheet(
                                         isSelected = index == selectedHourlyIndex,
                                         onClick = { selectedHourlyIndex = index },
                                         viewModel = viewModel,
-                                        temperatureUnit = temperatureUnit
+                                        temperatureUnit = temperatureUnit,
+                                        language = language
                                     )
                                 }
                             }
@@ -488,11 +520,15 @@ fun WeatherBottomSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        WeatherCard("WIND", "${String.format("%.1f", windSpeedValue)} $windSpeedUnitText", R.drawable.wind)
                         WeatherCard(
-                            "FEELS LIKE",
-                            "${viewModel.convertTemperature(weatherData.main.feels_like).roundToInt()}$tempSymbol", // أضف tempSymbol هنا
-                            R.drawable.feelslike
+                            label = if (language == "ar") "الرياح" else "WIND",
+                            value = "${String.format("%.1f", windSpeedValue)} $windSpeedUnitText".toLocalizedFormat(language),
+                            iconResId = R.drawable.wind
+                        )
+                        WeatherCard(
+                            label = if (language == "ar") "الإحساس" else "FEELS LIKE",
+                            value = "${viewModel.convertTemperature(weatherData.main.feels_like).roundToInt()}$tempSymbol".toLocalizedFormat(language),
+                            iconResId = R.drawable.feelslike
                         )
                     }
 
@@ -500,27 +536,45 @@ fun WeatherBottomSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        WeatherCard("VISIBILITY", "${weatherData.visibility} m", R.drawable.visibility)
-                        WeatherCard("CLOUDS", "${weatherData.clouds.all}%", R.drawable.clouds)
+                        WeatherCard(
+                            label = if (language == "ar") "الرؤية" else "VISIBILITY",
+                            value = "${weatherData.visibility} m".toLocalizedFormat(language),
+                            iconResId = R.drawable.visibility
+                        )
+                        WeatherCard(
+                            label = if (language == "ar") "الغيوم" else "CLOUDS",
+                            value = "${weatherData.clouds.all}%".toLocalizedFormat(language),
+                            iconResId = R.drawable.clouds
+                        )
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        WeatherCard("HUMIDITY", "${weatherData.main.humidity}%", R.drawable.humidity)
-                        WeatherCard("PRESSURE", "${weatherData.main.pressure} mb", R.drawable.pressure)
+                        WeatherCard(
+                            label = if (language == "ar") "الرطوبة" else "HUMIDITY",
+                            value = "${weatherData.main.humidity}%".toLocalizedFormat(language),
+                            iconResId = R.drawable.humidity
+                        )
+                        WeatherCard(
+                            label = if (language == "ar") "الضغط" else "PRESSURE",
+                            value = "${weatherData.main.pressure}mb".toLocalizedFormat(language),
+                            iconResId = R.drawable.pressure
+                        )
                     }
                 }
             }
         }
     }
-
-
-
+}
 
 @Composable
-fun WeatherCard(label: String, value: String, iconResId: Int) {
+fun WeatherCard(
+    label: String,
+    value: String,
+    iconResId: Int
+) {
     Card(
         modifier = Modifier
             .width(160.dp)
@@ -566,18 +620,18 @@ fun WeatherCard(label: String, value: String, iconResId: Int) {
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-
-
-        }
         }
     }
+}
+
 @Composable
 fun ForecastItem(
     forecastDisplay: ForecastDisplay,
     isSelected: Boolean,
     onClick: () -> Unit,
     viewModel: HomeViewModel,
-    temperatureUnit: TemperatureUnit
+    temperatureUnit: TemperatureUnit,
+    language: String
 ) {
     val convertedTemp = viewModel.convertTemperature(forecastDisplay.temp.toDouble()).roundToInt()
 
@@ -587,13 +641,20 @@ fun ForecastItem(
         TemperatureUnit.FAHRENHEIT -> "°F"
     }
 
-    // Get the current day name
     val currentCalendar = Calendar.getInstance()
-    val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
+    // Use the same Locale used in HomeViewModel
+    val locale = when (language) {
+        "ar" -> Locale("ar")
+        else -> Locale("en")
+    }
+    val dayFormat = SimpleDateFormat("EEEE", locale)
     val currentDay = dayFormat.format(currentCalendar.time)
 
-    // Determine if the forecast day is today
-    val displayDay = if (forecastDisplay.day == currentDay) "Today" else forecastDisplay.day
+    val displayDay = if (forecastDisplay.day == currentDay) {
+        if (language == "ar") "اليوم" else "Today"
+    } else {
+        forecastDisplay.day
+    }
 
     Box(
         modifier = Modifier
@@ -616,7 +677,7 @@ fun ForecastItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val dayTextColor = if (displayDay == "Today") Color(0xFFFFD700) else Color.White
+            val dayTextColor = if (displayDay == "Today" || displayDay == "اليوم") Color(0xFFFFD700) else Color.White
 
             Text(
                 text = displayDay,
@@ -626,13 +687,13 @@ fun ForecastItem(
                 fontFamily = CustomFont
             )
             Text(
-                text = forecastDisplay.time,
+                text = forecastDisplay.time.toLocalizedFormat(language),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF00BFFF),
                 fontFamily = CustomFont
             )
-            val weatherIcon = getWeatherIconResource(forecastDisplay.description)
+            val weatherIcon = getWeatherIconResource(forecastDisplay.description, language)
             Image(
                 painter = painterResource(id = weatherIcon),
                 contentDescription = forecastDisplay.description,
@@ -644,14 +705,14 @@ fun ForecastItem(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "$convertedTemp",
+                    text = "$convertedTemp".toLocalizedFormat(language),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     fontFamily = CustomFont
                 )
                 Text(
-                    text = tempSymbol,
+                    text = tempSymbol.toLocalizedFormat(language),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color.White,
@@ -673,19 +734,17 @@ fun ForecastItem(
     }
 }
 
-// Extension function to capitalize first letter of each word
 fun String.capitalize(): String {
     return this.split(" ").joinToString(" ") { word ->
         word.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault())
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault())
             else it.toString()
         }
     }
 }
 
-
 @Composable
-fun OfflineBanner(lastUpdated: Long?) {
+fun OfflineBanner(lastUpdated: Long?, language: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -703,21 +762,21 @@ fun OfflineBanner(lastUpdated: Long?) {
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.wifi_off),
-                    contentDescription = "No Internet",
+                    contentDescription = if (language == "ar") "لا يوجد إنترنت" else "No Internet",
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "No Internet Connection",
+                    text = if (language == "ar") "لا يوجد اتصال بالإنترنت" else "No Internet Connection",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             if (lastUpdated != null && lastUpdated > 0) {
-                val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                val dateFormat = SimpleDateFormat("hh:mm a", if (language == "ar") Locale("ar") else Locale.getDefault())
                 val formattedTime = dateFormat.format(lastUpdated)
                 Text(
-                    text = "Last updated: $formattedTime",
+                    text = (if (language == "ar") "آخر تحديث: " else "Last updated: ") + formattedTime.toLocalizedFormat(language),
                     color = Color.White.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 24.dp)

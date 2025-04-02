@@ -25,10 +25,11 @@ class FavoriteLocationsRepositoryImpl private constructor(
     override suspend fun removeFromFavorites(location: FavoriteLocation) {
         localDataSource.removeFromFavorites(location)
     }
-
-    override suspend fun isLocationFavorite(locationId: Int): Boolean {
-        return localDataSource.isLocationFavorite(locationId)
+    override suspend fun updateFavoriteLocation(location: FavoriteLocation) {
+        localDataSource.updateFavoriteLocation(location)
     }
+
+
 
     companion object {
         @Volatile

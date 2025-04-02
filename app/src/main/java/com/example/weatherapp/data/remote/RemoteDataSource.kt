@@ -5,6 +5,6 @@ import com.example.weatherapp.models.WeatherResponse
 import retrofit2.Response
 
 interface RemoteDataSource {
-    suspend fun getWeatherData(lat: Double, lon: Double): Response<WeatherResponse>
-    suspend fun getForecastData(lat: Double, lon: Double): Response<ForecastResponse>
+    suspend fun getWeatherData(lat: Double, lon: Double, lang: String): Response<WeatherResponse>
+    suspend fun getForecastData(lat: Double, lon: Double, lang: String): Response<ForecastResponse>
 }

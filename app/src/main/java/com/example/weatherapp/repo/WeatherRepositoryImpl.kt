@@ -8,18 +8,17 @@ import com.example.weatherapp.models.ForecastResponse
 import com.example.weatherapp.models.WeatherResponse
 import retrofit2.Response
 
-
 class WeatherRepositoryImpl private constructor(
     private val remoteDataSource: RemoteDataSource,
     private val localDataSource: LocalDataSource
 ) : WeatherRepository {
 
-    override suspend fun getWeatherData(lat: Double, lon: Double): Response<WeatherResponse> {
-        return remoteDataSource.getWeatherData(lat, lon)
+    override suspend fun getWeatherData(lat: Double, lon: Double, lang: String): Response<WeatherResponse> {
+        return remoteDataSource.getWeatherData(lat, lon, lang)
     }
 
-    override suspend fun getForecastData(lat: Double, lon: Double): Response<ForecastResponse> {
-        return remoteDataSource.getForecastData(lat, lon)
+    override suspend fun getForecastData(lat: Double, lon: Double, lang: String): Response<ForecastResponse> {
+        return remoteDataSource.getForecastData(lat, lon, lang)
     }
 
     override suspend fun saveWeather(weather: WeatherResponse, locationName: String) {
@@ -28,7 +27,7 @@ class WeatherRepositoryImpl private constructor(
             locationName = locationName,
             lastUpdated = System.currentTimeMillis()
         )
-        localDataSource.clearWeather() // Clear old data
+        localDataSource.clearWeather()
         localDataSource.saveWeather(weatherEntity)
     }
 
@@ -36,7 +35,7 @@ class WeatherRepositoryImpl private constructor(
         val forecastEntity = ForecastEntity(
             forecastResponse = forecast
         )
-        localDataSource.clearForecast() // Clear old data
+        localDataSource.clearForecast()
         localDataSource.saveForecast(forecastEntity)
     }
 
@@ -53,6 +52,7 @@ class WeatherRepositoryImpl private constructor(
     override suspend fun getLocalLocationName(): String? {
         return localDataSource.getWeather()?.locationName
     }
+
     override suspend fun getLastUpdated(): Long? {
         return localDataSource.getWeather()?.lastUpdated
     }

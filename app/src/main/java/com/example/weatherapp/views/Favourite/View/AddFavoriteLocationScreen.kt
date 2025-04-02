@@ -39,16 +39,27 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.ui.zIndex
 import com.airbnb.lottie.compose.*
 import com.example.weatherapp.R
 import androidx.navigation.NavHostController
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.example.weatherapp.views.Map.MapSelectionViewModel
 import kotlinx.coroutines.CoroutineScope
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesView(
+    language: String,
     viewModel: FavoritesViewModel,
     onMapClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -62,124 +73,157 @@ fun FavoritesView(
     val locationSource by homeViewModel.locationSource.collectAsState()
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = Color(0xff100b20),
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (locationSource == LocationSource.MAP) {
-                        onMapClick()
-                    } else {
-                        showSettingsDialog = true
-                    }
+    // Update cityNameAr and cityNameEn when FavoritesView is opened if they are empty
+    LaunchedEffect(favoriteLocations) {
+        favoriteLocations.forEach { location ->
+            if (location.cityNameAr.isBlank() || location.cityNameEn.isBlank()) {
+                val cityNameAr = homeViewModel.fetchCityNameFromApi(location.latitude, location.longitude, "ar")
+                val cityNameEn = homeViewModel.fetchCityNameFromApi(location.latitude, location.longitude, "en")
+                if (!cityNameAr.startsWith("Error:") && !cityNameEn.startsWith("Error:")) {
+                    val updatedLocation = location.copy(
+                        cityNameAr = cityNameAr,
+                        cityNameEn = cityNameEn
+                    )
+                    viewModel.updateFavoriteLocation(updatedLocation)
                 }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Favorite Location")
-            }
-        },
-        snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.padding(16.dp)
-            ) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = Color(0xFF1E2A44),
-                    contentColor = Color.White,
-                    actionColor = Color(0xFF6C61B5),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
             }
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 16.dp)
-                .fillMaxSize()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBackClick,
+    }
+
+    val layoutDirection = if (language == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Scaffold(
+            containerColor = Color(0xff100b20),
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
+                        if (locationSource == LocationSource.MAP) {
+                            onMapClick()
+                        } else {
+                            showSettingsDialog = true
+                        }
+                    }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color(0xFF6C61B5),
-                        modifier = Modifier.size(28.dp)
+                        Icons.Default.Add,
+                        contentDescription = if (language == "ar") "إضافة موقع مفضل" else "Add Favorite Location"
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Your Favorite Cities",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = CustomFont,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Icon(
-                    imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorite Location",
-                    tint = Color(0xFF6C61B5),
-                    modifier = Modifier.size(30.dp)
-                )
+            },
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(16.dp)
+                ) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = Color(0xFF1E2A44),
+                        contentColor = Color.White,
+                        actionColor = Color(0xFF6C61B5),
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (favoriteLocations.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(top = 100.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxSize()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation2))
-                    val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
-
-                    LottieAnimation(
-                        composition = composition,
-                        progress = { progress },
-                        modifier = Modifier.size(200.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    IconButton(
+                        onClick = onBackClick,
+                    ) {
+                        if (language == "ar") {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "رجوع",
+                                tint = Color(0xFF6C61B5),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF6C61B5),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "No Cities Added Yet. Add Your City Now !",
-                        fontSize = 16.sp,
+                        text = if (language == "ar") "مدنك المفضلة" else "Your Favorite Cities",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
                         fontFamily = CustomFont,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.FavoriteBorder,
+                        contentDescription = if (language == "ar") "موقع مفضل" else "Favorite Location",
+                        tint = Color(0xFF6C61B5),
+                        modifier = Modifier.size(30.dp)
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(paddingValues)
-                ) {
-                    items(favoriteLocations.reversed()) { location ->
-                        FavoriteLocationItem(
-                            location = location,
-                            homeViewModel = homeViewModel,
-                            navController = navController,
-                            onItemClick = {
-                                val geocoder = android.location.Geocoder(context)
-                                homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
-                                navController.navigate(ScreenRoute.HomeViewRoute.route) {
-                                    popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
-                                }
-                            },
-                            onDeleteClick = { viewModel.removeFavoriteLocation(it) },
-                            onUndoClick = { viewModel.addFavoriteLocation(it) },
-                            snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (favoriteLocations.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(top = 100.dp),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation2))
+                        val progress by animateLottieCompositionAsState(composition, iterations = LottieConstants.IterateForever)
+
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progress },
+                            modifier = Modifier.size(200.dp)
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = if (language == "ar") "لم يتم إضافة مدن بعد. أضف مدينتك الآن!" else "No Cities Added Yet. Add Your City Now!",
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(paddingValues)
+                    ) {
+                        items(favoriteLocations.reversed()) { location ->
+                            FavoriteLocationItem(
+                                language = language,
+                                location = location,
+                                homeViewModel = homeViewModel,
+                                navController = navController,
+                                onItemClick = {
+                                    val geocoder = android.location.Geocoder(context)
+                                    homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                                    navController.navigate(ScreenRoute.HomeViewRoute.route) {
+                                        popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
+                                    }
+                                },
+                                onDeleteClick = { viewModel.removeFavoriteLocation(it) },
+                                onUndoClick = { viewModel.addFavoriteLocation(it) },
+                                snackbarHostState = snackbarHostState,
+                                coroutineScope = coroutineScope
+                            )
+                        }
                     }
                 }
             }
@@ -195,7 +239,7 @@ fun FavoritesView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Enable Map",
+                        text = if (language == "ar") "تفعيل الخريطة" else "Enable Map",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -204,7 +248,7 @@ fun FavoritesView(
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Map Icon",
+                        contentDescription = if (language == "ar") "أيقونة الخريطة" else "Map Icon",
                         tint = Color(0xFF6C61B5),
                         modifier = Modifier.size(24.dp)
                     )
@@ -212,47 +256,53 @@ fun FavoritesView(
             },
             text = {
                 Text(
-                    text = "You need to enable 'Map' in Settings to add favorite locations.",
+                    text = if (language == "ar") "تحتاج إلى تفعيل 'الخريطة' في الإعدادات لإضافة مواقع مفضلة." else "You need to enable 'Map' in Settings to add favorite locations.",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontFamily = CustomFont
                 )
             },
             confirmButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable {
-                            navController.navigate(ScreenRoute.SettingViewRoute.route)
-                            showSettingsDialog = false
-                        },
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "Go to Settings",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable {
+                                navController.navigate(ScreenRoute.SettingViewRoute.route)
+                                showSettingsDialog = false
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "الذهاب إلى الإعدادات" else "Go to Settings",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable { showSettingsDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "إلغاء" else "Cancel",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable { showSettingsDialog = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
-                }
-            },
+            dismissButton = { },
             containerColor = Color(0xFF1E2A44),
             shape = RoundedCornerShape(12.dp)
         )
@@ -262,6 +312,7 @@ fun FavoritesView(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteLocationItem(
+    language: String,
     location: FavoriteLocation,
     homeViewModel: HomeViewModel,
     navController: NavHostController,
@@ -275,12 +326,25 @@ fun FavoriteLocationItem(
     var showSettingsDialog by remember { mutableStateOf(false) }
     val locationSource by homeViewModel.locationSource.collectAsState()
 
+    // Function to convert numbers to Arabic numerals
+    fun String.toLocalizedFormat(): String {
+        if (language != "ar") return this
+        val arabicDigits = "٠١٢٣٤٥٦٧٨٩"
+        val westernDigits = "0123456789"
+        var result = this
+        for (i in westernDigits.indices) {
+            result = result.replace(westernDigits[i], arabicDigits[i])
+        }
+        return result
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
                 if (locationSource == LocationSource.MAP) {
+                    homeViewModel.setLanguage(language)
                     onItemClick()
                 } else {
                     showSettingsDialog = true
@@ -303,7 +367,7 @@ fun FavoriteLocationItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Location Icon",
+                    contentDescription = if (language == "ar") "أيقونة الموقع" else "Location Icon",
                     tint = Color(0xFF6C61B5),
                     modifier = Modifier
                         .size(32.dp)
@@ -312,7 +376,11 @@ fun FavoriteLocationItem(
                 Spacer(modifier = Modifier.width(4.dp))
                 Column {
                     Text(
-                        text = location.name.split("\n")[0],
+                        text = if (language == "ar") {
+                            if (location.cityNameAr.isNotBlank()) location.cityNameAr else "موقع غير معروف"
+                        } else {
+                            if (location.cityNameEn.isNotBlank()) location.cityNameEn else "Unknown Location"
+                        },
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = CustomFont,
@@ -320,7 +388,11 @@ fun FavoriteLocationItem(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "lat & lon (${location.latitude}, ${location.longitude})",
+                        text = if (language == "ar") {
+                            "خطوط الطول والعرض (${location.latitude.toString().toLocalizedFormat()}, ${location.longitude.toString().toLocalizedFormat()})"
+                        } else {
+                            "lat & lon (${location.latitude}, ${location.longitude})"
+                        },
                         fontSize = 14.sp,
                         fontFamily = CustomFont,
                         color = Color(0xFFB0B0B0)
@@ -334,7 +406,7 @@ fun FavoriteLocationItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Location",
+                    contentDescription = if (language == "ar") "حذف الموقع" else "Delete Location",
                     tint = Color.Yellow
                 )
             }
@@ -350,7 +422,7 @@ fun FavoriteLocationItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Confirm Deletion",
+                        text = if (language == "ar") "تأكيد الحذف" else "Confirm Deletion",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -359,7 +431,7 @@ fun FavoriteLocationItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Icon",
+                        contentDescription = if (language == "ar") "أيقونة الحذف" else "Delete Icon",
                         tint = Color.Yellow,
                         modifier = Modifier.size(24.dp)
                     )
@@ -367,62 +439,67 @@ fun FavoriteLocationItem(
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete ${location.name.split("\n")[0]} ?",
+                    text = if (language == "ar") "هل أنت متأكد أنك تريد حذف ${location.cityNameAr}؟" else "Are you sure you want to delete ${location.cityNameEn}?",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontFamily = CustomFont
                 )
             },
             confirmButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable {
-                            onDeleteClick(location)
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Location deleted successfully",
-                                    actionLabel = "Undo",
-                                    duration = SnackbarDuration.Long
-                                ).let { result ->
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        onUndoClick(location)
-                                        snackbarHostState.showSnackbar(
-                                            message = "Location restored successfully",
-                                            duration = SnackbarDuration.Short
-                                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable {
+                                onDeleteClick(location)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = if (language == "ar") "تم حذف الموقع بنجاح" else "Location deleted successfully",
+                                        actionLabel = if (language == "ar") "تراجع" else "Undo",
+                                        duration = SnackbarDuration.Long
+                                    ).let { result ->
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            onUndoClick(location)
+                                            snackbarHostState.showSnackbar(
+                                                message = if (language == "ar") "تم استعادة الموقع بنجاح" else "Location restored successfully",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            showDeleteDialog = false
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Yes",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
+                                showDeleteDialog = false
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "نعم" else "Yes",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable { showDeleteDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "لا" else "No",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable { showDeleteDialog = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
-                }
-            },
+            dismissButton = { },
             containerColor = Color(0xFF1E2A44),
             shape = RoundedCornerShape(12.dp)
         )
@@ -437,7 +514,7 @@ fun FavoriteLocationItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Enable Map",
+                        text = if (language == "ar") "تفعيل الخريطة" else "Enable Map",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -446,7 +523,7 @@ fun FavoriteLocationItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Map Icon",
+                        contentDescription = if (language == "ar") "أيقونة الخريطة" else "Map Icon",
                         tint = Color(0xFF6C61B5),
                         modifier = Modifier.size(24.dp)
                     )
@@ -454,63 +531,69 @@ fun FavoriteLocationItem(
             },
             text = {
                 Text(
-                    text = "You need to enable 'Map' in Settings to view weather from favorite locations.",
+                    text = if (language == "ar") "تحتاج إلى تفعيل 'الخريطة' في الإعدادات لعرض الطقس من المواقع المفضلة." else "You need to enable 'Map' in Settings to view weather from favorite locations.",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontFamily = CustomFont
                 )
             },
             confirmButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable {
-                            navController.navigate(ScreenRoute.SettingViewRoute.route)
-                            showSettingsDialog = false
-                        },
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "Go to Settings",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF6C61B5), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable {
+                                navController.navigate(ScreenRoute.SettingViewRoute.route)
+                                showSettingsDialog = false
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "الذهاب إلى الإعدادات" else "Go to Settings",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .clickable { showSettingsDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == "ar") "إلغاء" else "Cancel",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontFamily = CustomFont
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFB0B0B0), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .clickable { showSettingsDialog = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontFamily = CustomFont
-                    )
-                }
-            },
+            dismissButton = {},
             containerColor = Color(0xFF1E2A44),
             shape = RoundedCornerShape(12.dp)
         )
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapSelectionView(
-    viewModel: FavoritesViewModel,
+    language: String,
+    viewModel: MapSelectionViewModel,
     onBackClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
     var locationName by remember { mutableStateOf("") }
-    var cityName by remember { mutableStateOf("") }
     var cameraPosition by remember {
         mutableStateOf(CameraPosition.fromLatLngZoom(LatLng(31.0, 31.0), 3f))
     }
@@ -536,154 +619,188 @@ fun MapSelectionView(
         }
     }
 
-    Scaffold(
-        containerColor = Color(0xff100b20),
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xff100b20)
-                ),
-                title = {
-                    Text(
-                        "Select Location",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = CustomFont,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onBackClick() }) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = "Back",
-                            tint = Color(0xFF6C61B5),
+    val layoutDirection = if (language == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Scaffold(
+            containerColor = Color(0xff100b20),
+            topBar = {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xff100b20)
+                    ),
+                    title = {
+                        Text(
+                            text = if (language == "ar") "اختر موقعًا" else "Select Location",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = CustomFont,
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { onBackClick() }) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = if (language == "ar") "رجوع" else "Back",
+                                tint = Color(0xFF6C61B5),
+                            )
+                        }
                     }
-                }
-            )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 60.dp, top = 20.dp, start = 40.dp, end = 40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                )
+            },
+            bottomBar = {
+                Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .border(2.dp, Color(0xFF6C61B5), CircleShape),
-                    shape = CircleShape
+                        .fillMaxWidth()
+                        .padding(bottom = 60.dp, top = 20.dp, start = 40.dp, end = 40.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .border(2.dp, Color(0xFF6C61B5), CircleShape),
+                        shape = CircleShape
                     ) {
-                        IconButton(
-                            onClick = {
-                                selectedLocation?.let { latLng ->
-                                    val favoriteLocation = FavoriteLocation(
-                                        name = locationName.ifEmpty { "Unnamed Location" },
-                                        latitude = latLng.latitude,
-                                        longitude = latLng.longitude
-                                    )
-                                    coroutineScope.launch {
-                                        viewModel.addFavoriteLocation(favoriteLocation)
-                                        isSaved = true
-                                        onBackClick()
-                                    }
-                                }
-                            },
-                            enabled = selectedLocation != null,
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            Icon(
-                                imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Save",
-                                tint = if (isSaved) Color.Red else Color.Gray
-                            )
+                            IconButton(
+                                onClick = {
+                                    selectedLocation?.let { latLng ->
+                                        val favoriteLocation = FavoriteLocation(
+                                            latitude = latLng.latitude,
+                                            longitude = latLng.longitude,
+                                            cityNameAr = "",
+                                            cityNameEn = ""
+                                        )
+                                        coroutineScope.launch {
+                                            viewModel.addFavoriteLocation(favoriteLocation)
+                                            isSaved = true
+                                            onBackClick()
+                                        }
+                                    }
+                                },
+                                enabled = selectedLocation != null,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (language == "ar") "حفظ" else "Save",
+                                    tint = if (isSaved) Color.Red else Color.Gray
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            GoogleMapWithMarker(
-                cameraPosition = cameraPosition,
-                selectedLocation = selectedLocation,
-                onMapClick = { clickedLocation ->
-                    selectedLocation = clickedLocation
-                    isSaved = false
-                    coroutineScope.launch {
-                        cityName = viewModel.getCityNameFromLatLng(clickedLocation)
-                        locationName = "$cityName\n\nlat & lon (${clickedLocation.latitude}, ${clickedLocation.longitude})"
-                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 4f)
-                    }
-                },
-                onCameraMove = { position -> cameraPosition = position }
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .align(Alignment.TopCenter)
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { newValue ->
-                        searchQuery = newValue
-                        viewModel.searchLocation(newValue)
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                GoogleMapWithMarker(
+                    language = language,
+                    cameraPosition = cameraPosition,
+                    selectedLocation = selectedLocation,
+                    onMapClick = { clickedLocation ->
+                        selectedLocation = clickedLocation
                         isSaved = false
+                        locationName = if (language == "ar") {
+                            "خط العرض وطول العرض (${clickedLocation.latitude}, ${clickedLocation.longitude})"
+                        } else {
+                            "lat & lon (${clickedLocation.latitude}, ${clickedLocation.longitude})"
+                        }
+                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 4f)
                     },
-                    placeholder = { Text("Search City") },
-                    singleLine = true,
-                    modifier = Modifier
-                        .width(250.dp)
-                        .zIndex(1f),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFF6C61B5),
-                        unfocusedBorderColor = Color.Gray,
-                        containerColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                    onCameraMove = { position -> cameraPosition = position }
                 )
 
-                if (searchSuggestions.isNotEmpty()) {
-                    LazyColumn(
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .align(Alignment.TopCenter)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { newValue ->
+                            searchQuery = newValue
+                            viewModel.searchLocation(newValue)
+                            isSaved = false
+                        },
+                        placeholder = { Text(if (language == "ar") "ابحث عن مدينة" else "Search City") },
+                        singleLine = true,
                         modifier = Modifier
-                            .background(Color.White)
-                            .padding(8.dp)
-                            .heightIn(max = 200.dp)
-                            .zIndex(1f)
-                    ) {
-                        items(searchSuggestions) { suggestion ->
-                            Text(
-                                text = suggestion,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp)
-                                    .clickable {
-                                        coroutineScope.launch {
-                                            val geocoder = android.location.Geocoder(context)
-                                            val address = geocoder.getFromLocationName(suggestion, 1)?.firstOrNull()
-                                            address?.let {
-                                                val latLng = LatLng(it.latitude, it.longitude)
-                                                selectedLocation = latLng
-                                                cityName = suggestion
-                                                locationName = "$cityName\n\nlat & lon (${latLng.latitude}, ${latLng.longitude})"
-                                                cameraPosition = CameraPosition.fromLatLngZoom(latLng, 15f)
-                                                isSaved = false
+                            .width(250.dp)
+                            .zIndex(1f),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color(0xFF6C61B5),
+                            unfocusedBorderColor = Color.Gray,
+                            containerColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Search,
+                            // Set keyboard language based on default language
+                            autoCorrect = language == "ar" // Activate auto-correct for Arabic
+                        ),
+                        textStyle = LocalTextStyle.current.copy(
+                            fontFamily = CustomFont,
+                            // Set text direction based on language
+                            textDirection = if (language == "ar") TextDirection.Rtl else TextDirection.Ltr
+                        )
+                    )
+
+                    if (searchSuggestions.isNotEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .background(Color.White)
+                                .padding(8.dp)
+                                .heightIn(max = 200.dp)
+                                .zIndex(1f)
+                        ) {
+                            items(searchSuggestions) { suggestion ->
+                                Text(
+                                    text = suggestion,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .clickable {
+                                            coroutineScope.launch {
+                                                val geocoder = android.location.Geocoder(context, if (language == "ar") Locale("ar") else Locale.getDefault())
+                                                val address = geocoder.getFromLocationName(suggestion, 1)?.firstOrNull()
+                                                address?.let {
+                                                    val latLng = LatLng(it.latitude, it.longitude)
+                                                    selectedLocation = latLng
+                                                    locationName = if (language == "ar") {
+                                                        "خط العرض وطول العرض (${latLng.latitude}, ${latLng.longitude})"
+                                                    } else {
+                                                        "lat & lon (${latLng.latitude}, ${latLng.longitude})"
+                                                    }
+                                                    cameraPosition = CameraPosition.fromLatLngZoom(latLng, 15f)
+                                                    isSaved = false
+                                                }
                                             }
+                                            searchQuery = ""
+                                            viewModel.searchLocation("")
                                         }
-                                        searchQuery = ""
-                                        viewModel.searchLocation("")
-                                    }
-                            )
+                                )
+                            }
                         }
+                    }
+
+                    if (locationName.isNotEmpty()) {
+                        Text(
+                            text = locationName,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontFamily = CustomFont,
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .background(Color(0xFF1E2A44), RoundedCornerShape(8.dp))
+                                .padding(8.dp)
+                                .zIndex(1f)
+                        )
                     }
                 }
             }
@@ -693,6 +810,7 @@ fun MapSelectionView(
 
 @Composable
 fun GoogleMapWithMarker(
+    language: String,
     cameraPosition: CameraPosition,
     selectedLocation: LatLng?,
     onMapClick: (LatLng) -> Unit,
@@ -719,7 +837,7 @@ fun GoogleMapWithMarker(
         selectedLocation?.let { location ->
             Marker(
                 state = MarkerState(position = location),
-                title = "Selected Location"
+                title = if (language == "ar") "الموقع المختار" else "Selected Location"
             )
         }
     }

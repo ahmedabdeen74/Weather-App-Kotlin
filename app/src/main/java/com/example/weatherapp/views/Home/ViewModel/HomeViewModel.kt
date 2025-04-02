@@ -46,34 +46,96 @@ class HomeViewModel(
     private val _lastUpdated = MutableStateFlow<Long?>(null)
     val lastUpdated: StateFlow<Long?> = _lastUpdated.asStateFlow()
 
+    private val _language = MutableStateFlow("en")
+    val language: StateFlow<String> = _language.asStateFlow()
+
+    private val _isLanguageDefault = MutableStateFlow(false) // Track whether the language is "default"
+    val isLanguageDefault: StateFlow<Boolean> = _isLanguageDefault.asStateFlow()
+
+    private var currentLat: Double = 0.0
+    private var currentLon: Double = 0.0
+
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("WeatherPrefs", Context.MODE_PRIVATE)
 
+    init {
+        val savedLanguage = sharedPreferences.getString("language", null)
+        val savedIsDefault = sharedPreferences.getBoolean("is_language_default", true)
+        _isLanguageDefault.value = savedIsDefault
+        if (savedLanguage != null) {
+            _language.value = savedLanguage
+        } else {
+            setLanguageBasedOnDevice() // Set the language based on the device language when starting the application
+        }
+    }
+
+    fun setLanguage(newLang: String, isDefault: Boolean = false) {
+        _language.value = newLang
+        _isLanguageDefault.value = isDefault
+        sharedPreferences.edit()
+            .putString("language", newLang)
+            .putBoolean("is_language_default", isDefault)
+            .apply()
+        if (currentLat != 0.0 || currentLon != 0.0) {
+            fetchWeatherData(currentLat, currentLon, Geocoder(context, getLocaleForLanguage(newLang)))
+        }
+    }
+
+    fun setLanguageBasedOnDevice() {
+        val deviceLanguage = Locale.getDefault().language
+        val newLang = when {
+            deviceLanguage.startsWith("ar") -> "ar"
+            else -> "en" //Default English if not Arabic
+        }
+        setLanguage(newLang, true) // Set the language as "Default"
+    }
+
+    suspend fun fetchCityNameFromApi(lat: Double, lon: Double, lang: String): String {
+        return try {
+            val response = repository.getWeatherData(lat, lon, lang)
+            if (response.isSuccessful) {
+                response.body()?.name ?: "Unknown Location"
+            } else {
+                "Error: ${response.code()}"
+            }
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
+    }
+
     fun fetchWeatherData(lat: Double, lon: Double, geocoder: Geocoder) {
+        currentLat = lat
+        currentLon = lon
         viewModelScope.launch {
             _isOnline.value = NetworkUtils.isNetworkAvailable(context)
             if (_isOnline.value) {
-                // Network is available, fetch from API
                 try {
-                    // Fetch location name
-                    try {
-                        val addresses = geocoder.getFromLocation(lat, lon, 1)
-                        if (!addresses.isNullOrEmpty()) {
-                            val address = addresses[0]
-                            _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea ?: "Unknown Location"
-                        }
-                    } catch (e: Exception) {
-                        _locationName.value = "Location Unavailable"
-                    }
-
-                    // Fetch weather data
-                    val response = repository.getWeatherData(lat, lon)
+                    val response = repository.getWeatherData(lat, lon, language.value)
                     if (response.isSuccessful) {
-                        response.body()?.let {
-                            _weatherState.value = WeatherState.Success(it)
-                            repository.saveWeather(it, _locationName.value) // Save to local database with lastUpdated timestamp
-                            // Save the weather description to SharedPreferences
-                            val weatherDescription = it.weather.firstOrNull()?.description?.capitalize() ?: "Unknown"
+                        response.body()?.let { weatherData ->
+                            _weatherState.value = WeatherState.Success(weatherData)
+                            if (_locationSource.value == LocationSource.MAP) {
+                                _locationName.value = weatherData.name
+                            } else {
+                                val locale = getLocaleForLanguage(language.value)
+                                val geocoderWithLocale = Geocoder(context, locale)
+                                try {
+                                    val addresses = geocoderWithLocale.getFromLocation(lat, lon, 1)
+                                    if (!addresses.isNullOrEmpty()) {
+                                        val address = addresses[0]
+                                        _locationName.value = address.locality
+                                            ?: address.subAdminArea
+                                                    ?: address.adminArea
+                                                    ?: "Unknown Location"
+                                    } else {
+                                        _locationName.value = "Location Unavailable"
+                                    }
+                                } catch (e: Exception) {
+                                    _locationName.value = "Location Unavailable"
+                                }
+                            }
+                            repository.saveWeather(weatherData, _locationName.value)
+                            val weatherDescription = weatherData.weather.firstOrNull()?.description?.capitalize() ?: "Unknown"
                             sharedPreferences.edit()
                                 .putString("weather_description", weatherDescription)
                                 .putString("location_name", _locationName.value)
@@ -84,20 +146,18 @@ class HomeViewModel(
                     } else {
                         _weatherState.value = WeatherState.Error("Error: ${response.code()}")
                     }
-
                     fetchForecastData(lat, lon)
                 } catch (e: Exception) {
                     _weatherState.value = WeatherState.Error(e.message ?: "Unknown error")
                 }
             } else {
-                // Network is unavailable, fetch from local database
                 val localWeather = repository.getLocalWeather()
                 val localLocationName = repository.getLocalLocationName()
                 val lastUpdatedTime = repository.getLastUpdated()
                 if (localWeather != null && localLocationName != null) {
                     _weatherState.value = WeatherState.Success(localWeather)
                     _locationName.value = localLocationName
-                    _lastUpdated.value = lastUpdatedTime // Set the last updated time for the UI
+                    _lastUpdated.value = lastUpdatedTime
                 } else {
                     _weatherState.value = WeatherState.Error("No internet and no local data available")
                 }
@@ -105,10 +165,11 @@ class HomeViewModel(
                 val localForecast = repository.getLocalForecast()
                 if (localForecast != null) {
                     val forecastItems = localForecast.list.map { forecastItem ->
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        val locale = getLocaleForLanguage(language.value)
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", locale)
                         val date = dateFormat.parse(forecastItem.dt_txt)
-                        val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
-                        val timeFormat = SimpleDateFormat("h a", Locale.getDefault())
+                        val dayFormat = SimpleDateFormat("EEEE", locale)
+                        val timeFormat = SimpleDateFormat("h a", locale)
 
                         ForecastDisplay(
                             day = dayFormat.format(date!!),
@@ -130,15 +191,16 @@ class HomeViewModel(
         viewModelScope.launch {
             if (NetworkUtils.isNetworkAvailable(context)) {
                 try {
-                    val response = repository.getForecastData(lat, lon)
+                    val response = repository.getForecastData(lat, lon, language.value)
                     if (response.isSuccessful) {
                         response.body()?.let { forecastResponse ->
-                            repository.saveForecast(forecastResponse) // Save to local database
+                            repository.saveForecast(forecastResponse)
+                            val locale = getLocaleForLanguage(language.value)
                             val forecastItems = forecastResponse.list.map { forecastItem ->
                                 val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                                 val date = dateFormat.parse(forecastItem.dt_txt)
-                                val dayFormat = SimpleDateFormat("EEEE", Locale.getDefault())
-                                val timeFormat = SimpleDateFormat("h a", Locale.getDefault())
+                                val dayFormat = SimpleDateFormat("EEEE", locale)
+                                val timeFormat = SimpleDateFormat("h a", locale)
 
                                 ForecastDisplay(
                                     day = dayFormat.format(date!!),
@@ -159,6 +221,13 @@ class HomeViewModel(
                     _forecastState.value = ForecastState.Error(e.message ?: "Unknown forecast error")
                 }
             }
+        }
+    }
+
+    private fun getLocaleForLanguage(lang: String): Locale {
+        return when (lang) {
+            "ar" -> Locale("ar")
+            else -> Locale("en")
         }
     }
 

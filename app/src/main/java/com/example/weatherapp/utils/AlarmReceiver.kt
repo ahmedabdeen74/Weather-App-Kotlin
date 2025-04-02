@@ -45,17 +45,21 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
         val triggerTime = intent.getLongExtra("triggerTime", 0)
-        Log.d("AlarmDebug", "Trigger time: ${SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(triggerTime)}")
 
-        // Retrieve the weather description and location name from SharedPreferences
+        // Retrieve the language, weather description, and location name from SharedPreferences
         val sharedPreferences = context.getSharedPreferences("WeatherPrefs", Context.MODE_PRIVATE)
+        val language = sharedPreferences.getString("language", "en") ?: "en" // Default English
         val weatherDescription = sharedPreferences.getString("weather_description", "Unknown") ?: "Unknown"
         val locationName = sharedPreferences.getString("location_name", "Unknown") ?: "Unknown"
 
-        createNotificationChannel(context)
+        // Log trigger time with the correct Locale
+        val locale = getLocaleForLanguage(language)
+        Log.d("AlarmDebug", "Trigger time: ${SimpleDateFormat("dd/MM/yyyy HH:mm:ss", locale).format(triggerTime)}")
+
+        createNotificationChannel(context, language)
         when (alertType) {
-            "NOTIFICATION" -> showNotification(context, intent, weatherDescription, locationName)
-            "ALARM" -> showNotificationWithSound(context, intent, weatherDescription, locationName)
+            "NOTIFICATION" -> showNotification(context, intent, weatherDescription, locationName, language)
+            "ALARM" -> showNotificationWithSound(context, intent, weatherDescription, locationName, language)
             else -> Log.e("AlarmDebug", "Unknown alert type: $alertType")
         }
     }
@@ -64,7 +68,8 @@ class AlarmReceiver : BroadcastReceiver() {
         context: Context,
         intent: Intent,
         weatherDescription: String,
-        locationName: String
+        locationName: String,
+        language: String
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val alertId = intent.getStringExtra("alertId") ?: return
@@ -80,10 +85,20 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Time format based on language
+        val locale = getLocaleForLanguage(language)
+        val timeFormat = SimpleDateFormat("HH:mm", locale)
+        val formattedTime = timeFormat.format(triggerTime)
+
         val notification = NotificationCompat.Builder(context, "weather_channel")
             .setSmallIcon(R.drawable.application_icon)
-            .setContentTitle("Weather Update")
-            .setContentText("It's $weatherDescription in $locationName at ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(triggerTime)}")
+            .setContentTitle(if (language == "ar") "تحديث الطقس" else "Weather Update")
+            .setContentText(
+                if (language == "ar")
+                    "الطقس $weatherDescription في $locationName الساعة $formattedTime"
+                else
+                    "It's $weatherDescription in $locationName at $formattedTime"
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPendingIntent)
             .setAutoCancel(true)
@@ -98,7 +113,8 @@ class AlarmReceiver : BroadcastReceiver() {
         context: Context,
         intent: Intent,
         weatherDescription: String,
-        locationName: String
+        locationName: String,
+        language: String
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val alertId = intent.getStringExtra("alertId") ?: return
@@ -139,13 +155,27 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Time format based on language
+        val locale = getLocaleForLanguage(language)
+        val timeFormat = SimpleDateFormat("HH:mm", locale)
+        val formattedTime = timeFormat.format(triggerTime)
+
         val notification = NotificationCompat.Builder(context, "weather_channel")
             .setSmallIcon(R.drawable.application_icon)
-            .setContentTitle("Weather Update")
-            .setContentText("It's $weatherDescription in $locationName at ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(triggerTime)}")
+            .setContentTitle(if (language == "ar") "تحديث الطقس" else "Weather Update")
+            .setContentText(
+                if (language == "ar")
+                    "الطقس $weatherDescription في $locationName الساعة $formattedTime"
+                else
+                    "It's $weatherDescription in $locationName at $formattedTime"
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPendingIntent)
-            .addAction(R.drawable.alarm, "Stop Alarm", stopPendingIntent)
+            .addAction(
+                R.drawable.alarm,
+                if (language == "ar") "إيقاف المنبه" else "Stop Alarm",
+                stopPendingIntent
+            )
             .setAutoCancel(true)
             .setOngoing(true)
             .build()
@@ -155,19 +185,27 @@ class AlarmReceiver : BroadcastReceiver() {
         Log.d("AlarmDebug", "Alarm notification successfully shown for ID: $alertId")
     }
 
-    private fun createNotificationChannel(context: Context) {
+    private fun createNotificationChannel(context: Context, language: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "weather_channel",
-                "Weather Alerts",
+                if (language == "ar") "تنبيهات الطقس" else "Weather Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Channel for weather alerts"
+                description = if (language == "ar") "قناة لتنبيهات الطقس" else "Channel for weather alerts"
             }
             val notificationManager = context.getSystemService(NotificationManager::class.java)
             Log.d("AlarmDebug", "Creating notification channel")
             notificationManager.createNotificationChannel(channel)
             Log.d("AlarmDebug", "Notification channel created successfully")
+        }
+    }
+
+    // دالة مساعدة لتحديد Locale بناءً على language
+    private fun getLocaleForLanguage(language: String): Locale {
+        return when (language) {
+            "ar" -> Locale("ar")
+            else -> Locale("en")
         }
     }
 }

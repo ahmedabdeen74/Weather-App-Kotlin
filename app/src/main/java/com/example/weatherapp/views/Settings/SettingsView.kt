@@ -16,7 +16,22 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.*
 import com.example.weatherapp.R
 import com.example.weatherapp.ui.theme.CustomFont
@@ -24,24 +39,35 @@ import com.example.weatherapp.utils.ScreenRoute
 import com.example.weatherapp.views.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.views.Home.ViewModel.LocationSource
 import com.google.android.gms.location.FusedLocationProviderClient
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.TextUnit
-import androidx.navigation.NavHostController
-
+import java.util.Locale
 enum class TemperatureUnit {
     CELSIUS, KELVIN, FAHRENHEIT
 }
 
 enum class WindSpeedUnit {
     METER_PER_SEC, MILE_PER_HOUR
+}
+
+fun String.toLocalizedFormat(language: String): String {
+    var result = this
+    if (language == "ar") {
+        val arabicDigits = "٠١٢٣٤٥٦٧٨٩"
+        val westernDigits = "0123456789"
+        for (i in westernDigits.indices) {
+            result = result.replace(westernDigits[i], arabicDigits[i])
+        }
+    }
+    if (language == "ar") {
+        result = result.replace("%", "٪")
+        result = result.replace("°C", "°س")
+        result = result.replace("°K", "°ك")
+        result = result.replace("°F", "°ف")
+        result = result.replace("m/s", "م/ث")
+        result = result.replace("mph", "ميل/س")
+        result = result.replace("meter/sec", "م/ث")
+        result = result.replace("mile/hour", "ميل/س")
+    }
+    return result
 }
 
 @Composable
@@ -67,6 +93,19 @@ fun SettingsView(
         LocationSource.GPS -> 0
         LocationSource.MAP -> 1
     }
+    val language by viewModel.language.collectAsStateWithLifecycle()
+    val isLanguageDefault by viewModel.isLanguageDefault.collectAsStateWithLifecycle()
+
+    val languageIndex = if (isLanguageDefault) {
+        0
+    } else {
+        when (language) {
+            "en" -> 1 // English
+            "ar" -> 2 // Arabic
+            else -> 1
+        }
+    }
+
     val context = LocalContext.current
 
     var hasLocationPermission by remember {
@@ -81,7 +120,6 @@ fun SettingsView(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted -> hasLocationPermission = isGranted }
 
-    // Update wind speed unit selection based on temperature unit change
     LaunchedEffect(temperatureUnit) {
         when (temperatureUnit) {
             TemperatureUnit.CELSIUS, TemperatureUnit.KELVIN -> viewModel.setWindSpeedUnit(WindSpeedUnit.METER_PER_SEC)
@@ -95,111 +133,140 @@ fun SettingsView(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xff100b20),
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .padding(vertical = 32.dp, horizontal = 16.dp)
-                    .align(Alignment.TopStart)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color(108, 97, 181),
-                    modifier = Modifier.size(35.dp)
+    val layoutDirection = if (language == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xff100b20),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .padding(vertical = 32.dp, horizontal = 16.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    if (language == "ar") {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "رجوع",
+                            tint = Color(108, 97, 181),
+                            modifier = Modifier.size(35.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(108, 97, 181),
+                            modifier = Modifier.size(35.dp)
+                        )
+                    }
+                }
+
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.animation1)
                 )
-            }
-
-            val composition by rememberLottieComposition(
-                LottieCompositionSpec.RawRes(R.raw.animation1)
-            )
-            LottieAnimation(
-                composition = composition,
-                iterations = LottieConstants.IterateForever,
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(Alignment.TopCenter)
-                    .padding(top = 32.dp)
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(top = 160.dp, start = 16.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                SettingCategory(
-                    title = "Language",
-                    options = listOf("Default", "English", "Arabic"),
-                    fontSize = 14.sp,
-                    painter = painterResource(id = R.drawable.language),
-                    selectedOption = 0
+                LottieAnimation(
+                    composition = composition,
+                    iterations = LottieConstants.IterateForever,
+                    modifier = Modifier
+                        .size(150.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = 32.dp)
                 )
 
-                SettingCategory(
-                    title = "Location",
-                    options = listOf("GPS", "Map"),
-                    fontSize = 14.sp,
-                    painter = painterResource(id = R.drawable.location),
-                    selectedOption = locationOption,
-                    onOptionSelected = { index ->
-                        when (index) {
-                            0 -> { // GPS
-                                viewModel.setLocationSource(LocationSource.GPS)
-                                if (hasLocationPermission) {
-                                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                                        if (location != null) {
-                                            val geocoder = android.location.Geocoder(context)
-                                            viewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = 150.dp, start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    SettingCategory(
+                        title = if (language == "ar") "اللغة" else "Language",
+                        options = if (language == "ar") listOf("لغة الجهاز", "الإنجليزية", "العربية") else listOf("Default", "English", "Arabic"),
+                        fontSize = 14.sp,
+                        painter = painterResource(id = R.drawable.language),
+                        selectedOption = languageIndex,
+                        onOptionSelected = { index ->
+                            when (index) {
+                                0 -> { // Default
+                                    viewModel.setLanguageBasedOnDevice()
+                                }
+                                1 -> { // English
+                                    viewModel.setLanguage("en")
+                                }
+                                2 -> { // Arabic
+                                    viewModel.setLanguage("ar")
+                                }
+                            }
+                        },
+                        language = language
+                    )
+
+                    SettingCategory(
+                        title = if (language == "ar") "الموقع" else "Location",
+                        options = if (language == "ar") listOf("نظام تحديد المواقع", "الخريطة") else listOf("GPS", "Map"),
+                        fontSize = 14.sp,
+                        painter = painterResource(id = R.drawable.location),
+                        selectedOption = locationOption,
+                        onOptionSelected = { index ->
+                            when (index) {
+                                0 -> { // GPS
+                                    viewModel.setLocationSource(LocationSource.GPS)
+                                    if (hasLocationPermission) {
+                                        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                                            if (location != null) {
+                                                val geocoder = android.location.Geocoder(context)
+                                                viewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
+                                            }
                                         }
                                     }
                                 }
+                                1 -> { // Map
+                                    viewModel.setLocationSource(LocationSource.MAP)
+                                    // navController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                                }
                             }
-                            1 -> { // Map
-                                viewModel.setLocationSource(LocationSource.MAP)
-                                // navController.navigate(ScreenRoute.FavoritesViewRoute.route)
+                        },
+                        language = language
+                    )
+
+                    SettingCategory(
+                        title = if (language == "ar") "وحدة درجة الحرارة" else "Temp Unit",
+                        options = if (language == "ar") listOf("سلسيوس °C", "كلفن °K", "فهرنهايت °F") else listOf("Celsius °C", "Kelvin °K", "Fahrenheit °F"),
+                        fontSize = 12.sp,
+                        painter = painterResource(id = R.drawable.tempunit),
+                        selectedOption = tempUnitIndex,
+                        onOptionSelected = { index ->
+                            val newUnit = when (index) {
+                                0 -> TemperatureUnit.CELSIUS
+                                1 -> TemperatureUnit.KELVIN
+                                2 -> TemperatureUnit.FAHRENHEIT
+                                else -> TemperatureUnit.CELSIUS
                             }
-                        }
-                    }
-                )
+                            viewModel.setTemperatureUnit(newUnit)
+                        },
+                        language = language
+                    )
 
-                SettingCategory(
-                    title = "Temp Unit",
-                    options = listOf("Celsius °C", "Kelvin °K", "Fahrenheit °F"),
-                    fontSize = 12.sp,
-                    painter = painterResource(id = R.drawable.tempunit),
-                    selectedOption = tempUnitIndex,
-                    onOptionSelected = { index ->
-                        val newUnit = when (index) {
-                            0 -> TemperatureUnit.CELSIUS
-                            1 -> TemperatureUnit.KELVIN
-                            2 -> TemperatureUnit.FAHRENHEIT
-                            else -> TemperatureUnit.CELSIUS
-                        }
-                        viewModel.setTemperatureUnit(newUnit)
-                    }
-                )
-
-                SettingCategory(
-                    title = "Wind Speed Unit",
-                    options = listOf("meter/sec", "mile/hour"),
-                    fontSize = 14.sp,
-                    painter = painterResource(id = R.drawable.windunit),
-                    selectedOption = windUnitIndex,
-                    onOptionSelected = { index ->
-                        val newUnit = when (index) {
-                            0 -> WindSpeedUnit.METER_PER_SEC
-                            1 -> WindSpeedUnit.MILE_PER_HOUR
-                            else -> WindSpeedUnit.METER_PER_SEC
-                        }
-                        viewModel.setWindSpeedUnit(newUnit)
-                    }
-                )
+                    SettingCategory(
+                        title = if (language == "ar") "وحدة سرعة الرياح" else "Wind Speed Unit",
+                        options = if (language == "ar") listOf("متر/ثانية", "ميل/ساعة") else listOf("meter/sec", "mile/hour"),
+                        fontSize = 14.sp,
+                        painter = painterResource(id = R.drawable.windunit),
+                        selectedOption = windUnitIndex,
+                        onOptionSelected = { index ->
+                            val newUnit = when (index) {
+                                0 -> WindSpeedUnit.METER_PER_SEC
+                                1 -> WindSpeedUnit.MILE_PER_HOUR
+                                else -> WindSpeedUnit.METER_PER_SEC
+                            }
+                            viewModel.setWindSpeedUnit(newUnit)
+                        },
+                        language = language
+                    )
+                }
             }
         }
     }
@@ -212,7 +279,8 @@ fun SettingCategory(
     painter: Painter,
     fontSize: TextUnit,
     selectedOption: Int,
-    onOptionSelected: (Int) -> Unit = {}
+    onOptionSelected: (Int) -> Unit = {},
+    language: String
 ) {
     Box(
         modifier = Modifier
@@ -223,7 +291,7 @@ fun SettingCategory(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (options.size > 2) 130.dp else 110.dp),
+                .height(if (options.size > 2) 135.dp else 115.dp),
             contentScale = ContentScale.FillBounds
         )
 
@@ -232,6 +300,10 @@ fun SettingCategory(
                 .fillMaxWidth()
                 .padding(start = 24.dp, end = 24.dp, top = 32.dp)
         ) {
+            if (language == "ar") {
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 12.dp)
@@ -291,7 +363,7 @@ fun SettingCategory(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = option,
+                            text = option.toLocalizedFormat(language),
                             fontSize = fontSize,
                             color = Color.White,
                         )

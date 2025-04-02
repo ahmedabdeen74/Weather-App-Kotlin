@@ -9,4 +9,5 @@ interface LocalDataSource {
     suspend fun addToFavorites(location: FavoriteLocation)
     suspend fun removeFromFavorites(location: FavoriteLocation)
     suspend fun isLocationFavorite(locationId: Int): Boolean
+    suspend fun updateFavoriteLocation(location: FavoriteLocation)
 }
