@@ -3,13 +3,14 @@ package com.example.weatherapp.views.Favourite.ViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.models.FavoriteLocation
+import com.example.weatherapp.repo.favourite.FavoriteLocationsRepository
 import com.example.weatherapp.repo.favourite.FavoriteLocationsRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
-    private val repository: FavoriteLocationsRepositoryImpl
+    private val repository: FavoriteLocationsRepository
 ) : ViewModel() {
 
     private val _favoriteLocations = MutableStateFlow<List<FavoriteLocation>>(emptyList())

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import com.example.weatherapp.data.local.favourite.LocalDataSource
 
 
-class FavoriteLocationsRepositoryImpl private constructor(
+class FavoriteLocationsRepositoryImpl  constructor(
     private val localDataSource: LocalDataSource
 ) : FavoriteLocationsRepository {
 

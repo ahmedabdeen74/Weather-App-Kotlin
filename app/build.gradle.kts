@@ -8,6 +8,14 @@ plugins {
 android {
     namespace = "com.example.weatherapp"
     compileSdk = 35
+    packagingOptions {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+            excludes += "META-INF/INDEX.LIST"
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.weatherapp"

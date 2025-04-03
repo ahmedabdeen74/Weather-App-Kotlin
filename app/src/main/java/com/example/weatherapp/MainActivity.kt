@@ -244,7 +244,6 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     @Composable
     fun SetupNavHost() {
-        // الحصول على اللغة من HomeViewModel
         val language by homeViewModel.language.collectAsStateWithLifecycle()
 
         NavHost(
