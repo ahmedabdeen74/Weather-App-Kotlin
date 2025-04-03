@@ -93,6 +93,20 @@ class WeatherAlertsViewModel(
         return deletedAlerts.size
     }
 
+    fun stopAlert(alertId: String) {
+        viewModelScope.launch {
+            val alert = _alerts.value.find { it.id == alertId }
+            alert?.let {
+                val updatedAlert = it.copy(isStopped = true, isActive = false) // Update the stop status
+                repository.updateWeatherAlert(updatedAlert) // Update the database using the new function
+                cancelAlarm(updatedAlert) // Cancel the alert
+                if (it.alertType == AlertType.ALARM) {
+                    AlarmReceiver.stopAlarmSound() // Turn off the sound if it is an alarm
+                }
+            }
+        }
+    }
+
     private fun scheduleAlarm(alert: WeatherAlert) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("alertId", alert.id)
@@ -124,4 +138,3 @@ class WeatherAlertsViewModel(
         alarmManager.cancel(pendingIntent)
     }
 }
-

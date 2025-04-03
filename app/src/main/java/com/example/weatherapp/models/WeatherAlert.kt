@@ -9,7 +9,8 @@ data class WeatherAlert(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val triggerTime: Long,
     val alertType: AlertType,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val isStopped: Boolean = false
 )
 
 enum class AlertType {

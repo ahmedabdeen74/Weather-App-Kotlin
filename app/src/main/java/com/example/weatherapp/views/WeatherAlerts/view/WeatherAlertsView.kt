@@ -1,7 +1,11 @@
 package com.example.weatherapp.views.WeatherAlerts.view
 
+import android.app.AlarmManager
 import android.app.DatePickerDialog
+import android.app.PendingIntent
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,6 +45,7 @@ import com.example.weatherapp.R
 import com.example.weatherapp.models.AlertType
 import com.example.weatherapp.models.WeatherAlert
 import com.example.weatherapp.ui.theme.CustomFont
+import com.example.weatherapp.utils.AlarmReceiver
 import com.example.weatherapp.views.WeatherAlerts.viewModel.WeatherAlertsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -76,11 +81,12 @@ fun translateAlertType(alertType: AlertType, language: String): String {
 fun WeatherAlertsView(
     viewModel: WeatherAlertsViewModel,
     onBackClick: () -> Unit,
-    language: String // إضافة اللغة كمعامل
+    language: String
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     val alerts by viewModel.alerts.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
@@ -197,7 +203,10 @@ fun WeatherAlertsView(
                                 getDeletedAlertsCount = { viewModel.getDeletedAlertsCount() },
                                 snackbarHostState = snackbarHostState,
                                 coroutineScope = coroutineScope,
-                                language = language
+                                language = language,
+                                context = context,
+                                alarmManager = alarmManager,
+                                viewModel = viewModel,
                             )
                         }
                     }
@@ -226,7 +235,10 @@ fun AlertItem(
     getDeletedAlertsCount: () -> Int,
     snackbarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope,
-    language: String // إضافة اللغة كمعامل
+    language: String,
+    context: Context,
+    alarmManager: AlarmManager,
+    viewModel: WeatherAlertsViewModel
 ) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", if (language == "ar") Locale("ar") else Locale.getDefault())
     val calendar = Calendar.getInstance()
@@ -254,6 +266,9 @@ fun AlertItem(
     val dateText = dateFormat2.format(Date(alert.triggerTime)).toLocalizedFormat(language)
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Check if the alert time has passed
+    val isTimePassed = alert.triggerTime <= System.currentTimeMillis()
 
     Card(
         modifier = Modifier
@@ -319,7 +334,52 @@ fun AlertItem(
                         modifier = Modifier.size(18.dp)
                     )
                 }
+                // Show "Time has passed" message if the time has passed
+                if (isTimePassed) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (language == "ar") "(الوقت قد انتهى)" else "(Time has passed)",
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        fontFamily = CustomFont
+                    )
+                }
             }
+            // Show "Stop" button if the time hasn't passed
+            if (!isTimePassed) {
+                IconButton(
+                    onClick = {
+                        // Call the stopAlert function from the ViewModel
+                        viewModel.stopAlert(alert.id)
+                        // Show a snackbar to confirm the action
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = if (language == "ar") "تم إيقاف التنبيه بنجاح" else "Alert stopped successfully",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    modifier = Modifier.size(36.dp),
+                    enabled = !alert.isStopped // Disable the button if the alert is off
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = when {
+                                alert.isStopped && alert.alertType == AlertType.NOTIFICATION -> R.drawable.notifications_off
+                                alert.isStopped && alert.alertType == AlertType.ALARM -> R.drawable.alarm_off
+                                else -> R.drawable.stop
+                            }
+                        ),
+                        contentDescription = if (language == "ar") "إيقاف التنبيه" else "Stop Alert",
+                        tint = when {
+                            alert.isStopped && alert.alertType == AlertType.NOTIFICATION -> Color(0xFF9C91FF)
+                            alert.isStopped && alert.alertType == AlertType.ALARM -> Color(0xFFFF9D5C)
+                            else -> Color.Red
+                        }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             IconButton(
                 onClick = { showDeleteDialog = true },
                 modifier = Modifier.size(36.dp)

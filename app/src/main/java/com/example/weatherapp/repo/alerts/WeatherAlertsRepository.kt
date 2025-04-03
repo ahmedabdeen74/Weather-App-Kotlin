@@ -8,4 +8,5 @@ interface WeatherAlertsRepository {
     suspend fun addWeatherAlert(alert: WeatherAlert)
     suspend fun deleteWeatherAlert(alert: WeatherAlert)
     suspend fun updateAlertStatus(alertId: String, isActive: Boolean)
+    suspend fun updateWeatherAlert(alert: WeatherAlert)
 }

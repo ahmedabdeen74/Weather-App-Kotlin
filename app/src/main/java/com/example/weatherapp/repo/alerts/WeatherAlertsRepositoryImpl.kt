@@ -1,7 +1,5 @@
 package com.example.weatherapp.repo.alerts
 
-
-
 import com.example.weatherapp.data.local.alerts.WeatherAlertsLocalDataSource
 import com.example.weatherapp.models.WeatherAlert
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +22,10 @@ class WeatherAlertsRepositoryImpl private constructor(
 
     override suspend fun updateAlertStatus(alertId: String, isActive: Boolean) {
         localDataSource.updateAlertStatus(alertId, isActive)
+    }
+
+    override suspend fun updateWeatherAlert(alert: WeatherAlert) {
+        localDataSource.updateWeatherAlert(alert)
     }
 
     companion object {

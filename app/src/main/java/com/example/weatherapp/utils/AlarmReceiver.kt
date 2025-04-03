@@ -201,7 +201,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    // دالة مساعدة لتحديد Locale بناءً على language
+    // Helper function to determine Locale based on language
     private fun getLocaleForLanguage(language: String): Locale {
         return when (language) {
             "ar" -> Locale("ar")

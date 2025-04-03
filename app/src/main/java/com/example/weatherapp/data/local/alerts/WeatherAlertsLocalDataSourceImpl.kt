@@ -3,7 +3,6 @@ package com.example.weatherapp.data.local.alerts
 import com.example.weatherapp.models.WeatherAlert
 import kotlinx.coroutines.flow.Flow
 
-
 class WeatherAlertsLocalDataSourceImpl(
     private val weatherAlertsDao: WeatherAlertsDao
 ) : WeatherAlertsLocalDataSource {
@@ -21,5 +20,9 @@ class WeatherAlertsLocalDataSourceImpl(
 
     override suspend fun updateAlertStatus(alertId: String, isActive: Boolean) {
         weatherAlertsDao.updateAlertStatus(alertId, isActive)
+    }
+
+    override suspend fun updateWeatherAlert(alert: WeatherAlert) {
+        weatherAlertsDao.updateWeatherAlert(alert)
     }
 }
