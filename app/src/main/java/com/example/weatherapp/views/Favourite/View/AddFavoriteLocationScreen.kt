@@ -216,7 +216,7 @@ fun FavoritesView(
                                     coroutineScope.launch {
                                         val geocoder = android.location.Geocoder(context)
                                         homeViewModel.fetchWeatherData(location.latitude, location.longitude, geocoder)
-                                        delay(1000)
+                                        delay(3000)
                                         navController.navigate(ScreenRoute.HomeViewRoute.route) {
                                             popUpTo(ScreenRoute.HomeViewRoute.route) { inclusive = true }
                                         }
@@ -732,7 +732,7 @@ fun MapSelectionView(
                                 }
                             }
                         }
-                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 15f)
+                        cameraPosition = CameraPosition.fromLatLngZoom(clickedLocation, 9f)
                     },
                     onCameraMove = { position -> cameraPosition = position }
                 )
@@ -800,7 +800,7 @@ fun MapSelectionView(
                                                     } else {
                                                         "lat & lon (${latLng.latitude}, ${latLng.longitude})"
                                                     }
-                                                    cameraPosition = CameraPosition.fromLatLngZoom(latLng, 15f)
+                                                    cameraPosition = CameraPosition.fromLatLngZoom(latLng, 9f)
                                                     isSaved = false
                                                 }
                                             }
