@@ -74,23 +74,6 @@ fun FavoritesView(
     val locationSource by homeViewModel.locationSource.collectAsState()
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    // Update cityNameAr and cityNameEn when FavoritesView is opened if they are empty
-    LaunchedEffect(favoriteLocations) {
-        favoriteLocations.forEach { location ->
-            if (location.cityNameAr.isBlank() || location.cityNameEn.isBlank()) {
-                val cityNameAr = homeViewModel.fetchCityNameFromApi(location.latitude, location.longitude, "ar")
-                val cityNameEn = homeViewModel.fetchCityNameFromApi(location.latitude, location.longitude, "en")
-                if (!cityNameAr.startsWith("Error:") && !cityNameEn.startsWith("Error:")) {
-                    val updatedLocation = location.copy(
-                        cityNameAr = cityNameAr,
-                        cityNameEn = cityNameEn
-                    )
-                    viewModel.updateFavoriteLocation(updatedLocation)
-                }
-            }
-        }
-    }
-
     val layoutDirection = if (language == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
         Scaffold(
